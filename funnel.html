@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyOS Compliance - Mathematical Certainty for the EU AI Act</title>
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(15, 23, 48, 0.7);
+      --panel-solid: #0f1730;
+      --border: rgba(43, 54, 90, 0.6);
+      --text: #e6e8ef;
+      --muted: #aab2d5;
+      --primary: #60a5fa;
+      --accent: #2dd4bf;
+      --purple: #a855f7;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --ok: #22c55e;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+    
+    /* Glow backdrops */
+    .glow-bg {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(96, 165, 250, 0.08) 0%, rgba(11, 16, 32, 0) 70%);
+      top: -200px;
+      left: -200px;
+      z-index: -1;
+      pointer-events: none;
+    }
+    
+    .glow-bg-right {
+      position: fixed;
+      width: 800px;
+      height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.05) 0%, rgba(11, 16, 32, 0) 70%);
+      bottom: -300px;
+      right: -300px;
+      z-index: -1;
+      pointer-events: none;
+    }
+    
+    header {
+      backdrop-filter: blur(12px);
+      background: rgba(11, 16, 32, 0.8);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      transition: all 0.3s ease;
+    }
+    
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--primary));
+      position: relative;
+    }
+    
+    .logo::after {
+      content: '⚖';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #0b1020;
+    }
+    
+    .brand-name {
+      font-weight: 700;
+      font-size: 18px;
+      background: linear-gradient(to right, #ffffff, var(--muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+    
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: color 0.2s ease;
+    }
+    
+    .nav-link:hover {
+      color: var(--text);
+    }
+    
+    .btn {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+    
+    .btn.primary {
+      background: linear-gradient(135deg, var(--primary), var(--purple));
+      border: none;
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(96, 165, 250, 0.2);
+    }
+    
+    .btn.primary:hover {
+      box-shadow: 0 4px 25px rgba(96, 165, 250, 0.3);
+      transform: translateY(-1.5px);
+    }
+    
+    .btn.accent {
+      background: linear-gradient(135deg, var(--accent), var(--primary));
+      border: none;
+      color: #0b1020;
+      font-weight: 700;
+    }
+    
+    .btn.accent:hover {
+      box-shadow: 0 4px 25px rgba(45, 212, 191, 0.3);
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 60px 0;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 48px;
+      align-items: center;
+    }
+    
+    @media (max-width: 968px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 40px 0;
+        gap: 36px;
+      }
+    }
+    
+    .hero-tagline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    
+    .hero-tagline .dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    
+    .hero-content h1 {
+      font-size: clamp(38px, 5vw, 56px);
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(to right, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+    
+    .hero-content p {
+      font-size: 18px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      font-weight: 300;
+    }
+    
+    .hero-ctas {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    /* Interactive Scanner Widget */
+    .scanner-widget {
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+    
+    .scanner-widget::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(to right, transparent, var(--primary), transparent);
+    }
+    
+    .scanner-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+    
+    .scanner-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .scanner-title .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 1.8s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 10px var(--accent); }
+      100% { transform: scale(0.9); opacity: 0.6; }
+    }
+    
+    .scanner-presets {
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+    
+    .preset-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+    
+    .preset-btn.active {
+      background: rgba(96, 165, 250, 0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    .console-box {
+      background: #050a14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      height: 140px;
+      overflow: auto;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    
+    .console-box pre {
+      color: var(--accent);
+      white-space: pre-wrap;
+    }
+    
+    .sectors-visual {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    
+    .sector-cell {
+      height: 36px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--ok);
+      font-weight: 700;
+      transition: all 0.3s ease;
+    }
+    
+    .sector-cell.corrupted {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      animation: shake 0.4s ease;
+    }
+    
+    .sector-cell.healing {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--warn);
+      color: var(--warn);
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-3px); }
+      75% { transform: translateX(3px); }
+    }
+    
+    .gate-output {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 10px;
+    }
+    
+    .gate-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    
+    .gate-status-pill {
+      font-weight: 800;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+    
+    .gate-status-pill.allow {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.35);
+      color: var(--ok);
+    }
+    
+    .gate-status-pill.deny {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: var(--danger);
+    }
+    
+    .gate-status-pill.escalate {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: var(--warn);
+    }
+    
+    /* Pain vs Solution Section */
+    .comparison-section {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+    
+    .sec-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 48px auto;
+    }
+    
+    .sec-header h2 {
+      font-size: clamp(28px, 4vw, 36px);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+    
+    .sec-header p {
+      color: var(--muted);
+      font-size: 16px;
+    }
+    
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+    
+    @media (max-width: 768px) {
+      .compare-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .compare-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .compare-card.positive {
+      border-color: rgba(96, 165, 250, 0.3);
+    }
+    
+    .compare-card.positive::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--primary);
+    }
+    
+    .compare-card.negative::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--danger);
+    }
+    
+    .compare-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .compare-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .compare-item {
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+    }
+    
+    .compare-icon {
+      font-size: 16px;
+      display: flex;
+      align-items: flex-start;
+      margin-top: 2px;
+    }
+    
+    .compare-card.positive .compare-icon { color: var(--accent); }
+    .compare-card.negative .compare-icon { color: var(--danger); }
+    
+    .compare-text strong {
+      display: block;
+      color: var(--text);
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+    
+    .compare-text span {
+      color: var(--muted);
+    }
+    
+    /* 23 Tests Grid */
+    .tests-section {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+    
+    .tests-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    
+    @media (max-width: 968px) {
+      .tests-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (max-width: 560px) {
+      .tests-grid { grid-template-columns: 1fr; }
+    }
+    
+    .test-card {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .test-card:hover {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(96, 165, 250, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .test-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .test-card-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .test-card-layer {
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 999px;
+      color: var(--muted);
+    }
+    
+    .test-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    
+    .test-card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    
+    /* Call to Action Banner */
+    .partner-banner {
+      background: linear-gradient(135deg, rgba(96, 165, 250, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      max-width: 900px;
+      margin: 40px auto 0 auto;
+      position: relative;
+    }
+    
+    .partner-banner h3 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    
+    .partner-banner p {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 650px;
+      margin: 0 auto 24px auto;
+    }
+    
+    /* Pricing Section */
+    .pricing-section {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+    
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 60px;
+    }
+    
+    @media (max-width: 968px) {
+      .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 500px;
+        margin: 0 auto 40px auto;
+      }
+    }
+    
+    .pricing-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.2s ease;
+    }
+    
+    .pricing-card:hover {
+      transform: translateY(-2px);
+    }
+    
+    .pricing-card.featured {
+      border-color: var(--primary);
+      background: rgba(15, 23, 48, 0.95);
+      box-shadow: 0 10px 30px rgba(96, 165, 250, 0.1);
+    }
+    
+    .pricing-card.featured .badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--primary);
+      color: #0b1020;
+      font-weight: 700;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+    
+    .plan-name {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    
+    .plan-price {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: baseline;
+    }
+    
+    .plan-price span {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-left: 4px;
+    }
+    
+    .plan-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      min-height: 40px;
+    }
+    
+    .plan-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex: 1;
+    }
+    
+    .plan-feature {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+    }
+    
+    .plan-feature-icon {
+      color: var(--accent);
+    }
+    
+    /* Contact Form & Footer */
+    .footer-form-section {
+      padding: 60px 0 80px 0;
+      border-top: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--bg) 0%, #070a14 100%);
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 60px;
+      align-items: center;
+    }
+    
+    @media (max-width: 968px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: 36px;
+      }
+    }
+    
+    .form-text h2 {
+      font-size: clamp(28px, 4vw, 36px);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    
+    .form-text p {
+      color: var(--muted);
+      margin-bottom: 24px;
+      font-weight: 300;
+    }
+    
+    .form-bullets {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .form-bullet {
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+    }
+    
+    .form-bullet-icon {
+      width: 24px;
+      height: 24px;
+      background: rgba(96, 165, 250, 0.1);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+    
+    .form-card {
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    
+    @media (max-width: 560px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .form-control {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+    }
+    
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      background: #050a14;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    
+    /* Overlay for scanning animation */
+    .scan-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(11, 16, 32, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      border-radius: 16px;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    
+    .scan-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(96, 165, 250, 0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-bg"></div>
+  <div class="glow-bg-right"></div>
+  
+  <header>
+    <div class="nav-container">
+      <div class="logo-container">
+        <img src="logo.png" alt="OnlyOS - Compliance" style="height: 32px; display: block;" />
+      </div>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link">Control Dashboard</a>
+        <a href="3d-gate-visualizer.html" class="nav-link" target="_blank" rel="noopener" style="color: var(--accent);">3D Gate Visualizer</a>
+        <a href="#comparison" class="nav-link">Methodology</a>
+        <a href="#tests" class="nav-link">23-Point Suite</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+        <a href="#audit-request" class="btn accent">Request Audit</a>
+      </nav>
+    </div>
+  </header>
+  
+  <main>
+    <!-- Hero Section -->
+    <section class="container hero">
+      <div class="hero-content">
+        <div class="hero-tagline">
+          <div class="dot"></div>
+          <span>August 2, 2026 EU AI Act Deadline Focus</span>
+        </div>
+        <h1>Compliance with Mathematical Certainty</h1>
+        <p>Don't just tick check-boxes. Generate provable, auditable cryptographic evidence that satisfies Articles 9, 11, 12, 13, 14, and 15 of Regulation (EU) 2024/1689. Built on top of the deterministic OnlyOS runtime.</p>
+        <div class="hero-ctas">
+          <a href="#audit-request" class="btn primary">Schedule Paid PoC Pilot</a>
+          <a href="3d-gate-visualizer.html" target="_blank" rel="noopener" class="btn" style="border-color: var(--accent); color: var(--accent);">🔮 Interactive 3D Visualizer</a>
+          <a href="#tests" class="btn">Explore DGV Test cards</a>
+        </div>
+      </div>
+      
+      <!-- Interactive Scanner Widget -->
+      <div class="scanner-widget" id="scanner">
+        <div class="scan-overlay" id="scan-overlay">
+          <div class="spinner"></div>
+          <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.5px;" id="scan-status-text">RUNNING HARMONY SOLVER...</div>
+        </div>
+        <div class="scanner-header">
+          <div class="scanner-title">
+            <div class="pulse-dot"></div>
+            <span>DGV Gating Plane Simulator</span>
+          </div>
+          <span style="font-size: 10px; font-weight: 700; color: var(--accent);">DGV v0.3.0 ENGINE</span>
+        </div>
+        
+        <div class="scanner-presets">
+          <button class="preset-btn active" id="btn-pre-compliant" onclick="selectPreset('compliant')">Scenario 1: Compliant Run</button>
+          <button class="preset-btn" id="btn-pre-injection" onclick="selectPreset('injection')">Scenario 2: Prompt Injection</button>
+          <button class="preset-btn" id="btn-pre-latency" onclick="selectPreset('latency')">Scenario 3: Latency Timeout</button>
+          <button class="preset-btn" id="btn-pre-bias" onclick="selectPreset('bias')">Scenario 4: Demographics Skew</button>
+        </div>
+        
+        <div class="console-box">
+          <pre id="console-output">// OnlyOS Gating Plane Simulation Console
+// Click a preset above to run validation...</pre>
+        </div>
+        
+        <div class="sectors-visual" id="sectors-visual">
+          <div class="sector-cell" id="cell-0">SEC 0: OK</div>
+          <div class="sector-cell" id="cell-1">SEC 1: OK</div>
+          <div class="sector-cell" id="cell-2">SEC 2: OK</div>
+          <div class="sector-cell" id="cell-3">SEC 3: OK</div>
+        </div>
+        
+        <div class="gate-output">
+          <span class="gate-label">Verifiable Gating Outcome</span>
+          <span class="gate-status-pill allow" id="gate-status-badge">GATE ALLOW</span>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Pain points vs Solution comparison grid -->
+    <section class="container comparison-section" id="comparison">
+      <div class="sec-header">
+        <h2>Why Mathematical Proof Beats Checklists</h2>
+        <p>Regulators and notified body auditors require reproducible evidence, not self-certified assertions. Here is how OnlyOS transforms AI governance.</p>
+      </div>
+      
+      <div class="compare-grid">
+        <div class="compare-card negative">
+          <h3 style="color: var(--danger);"><span style="font-size:18px;">☒</span> Qualitative Policy Checklists</h3>
+          <ul class="compare-list">
+            <li class="compare-item">
+              <span class="compare-icon">✕</span>
+              <div class="compare-text">
+                <strong>Manual & Error-Prone</strong>
+                <span>Relying on developers to fill spreadsheet questionnaires which diverge from actual runtime code.</span>
+              </div>
+            </li>
+            <li class="compare-item">
+              <span class="compare-icon">✕</span>
+              <div class="compare-text">
+                <strong>Vulnerable to Silent Drift</strong>
+                <span>No active mechanism to catch model drift, float variance, or security compromises post-deployment.</span>
+              </div>
+            </li>
+            <li class="compare-item">
+              <span class="compare-icon">✕</span>
+              <div class="compare-text">
+                <strong>Unverifiable Telemetry</strong>
+                <span>Generates policy documents that lack cryptographic linkage to actual agent transaction execution logs.</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="compare-card positive">
+          <h3 style="color: var(--accent);"><span style="font-size:18px;">☑</span> OnlyOS Mathematical Gating</h3>
+          <ul class="compare-list">
+            <li class="compare-item">
+              <span class="compare-icon">✓</span>
+              <div class="compare-text">
+                <strong>Automated Code Enforcement</strong>
+                <span>Verification scripts run inside the sandboxed execution plane, intercepting every state modification request.</span>
+              </div>
+            </li>
+            <li class="compare-item">
+              <span class="compare-icon">✓</span>
+              <div class="compare-text">
+                <strong>Active Protection / Fail-Closed</strong>
+                <span>Instantly shuts safety gates when adversarial inputs, token replays, or latency timeout thresholds are violated.</span>
+              </div>
+            </li>
+            <li class="compare-item">
+              <span class="compare-icon">✓</span>
+              <div class="compare-text">
+                <strong>Verifiable Evidence Packs</strong>
+                <span>Outputs cryptographically signed JSON evidence records containing complete step-level residuals and state signatures.</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 23-Point DGV Test Suite Showcase -->
+    <section class="container tests-section" id="tests">
+      <div class="sec-header">
+        <h2>The 23-Point DGV Verification Suite</h2>
+        <p>The Deterministic & Governance Verified (DGV) framework tests AI agents across 23 core claim classes aligning with DGV/OnlyOS,  SVRNOS,  LifeStack / WEDGE  layers with canonical Governance error codes.</p>
+      </div>
+      
+      <div class="tests-grid" id="dgv-tests-showcase">
+        <!-- Render 23 cards -->
+      </div>
+      
+      <!-- Partner Campaign Call-to-Action Banner -->
+      <div class="partner-banner">
+        <h3>Require DGV Compliance from Your AI Vendors</h3>
+        <p>Are your third-party AI suppliers exposing you to multi-million euro fines under the EU AI Act? Mandate that your vendors take our 23-point DGV verification test and supply cryptographically signed evidence packages before integrations.</p>
+        <div style="display:flex; gap:16px; justify-content:center;">
+          <a href="#audit-request" class="btn primary">Get Partner Testing Devkit</a>
+          <a href="index.html?page=dgv" class="btn">View Registry Logs</a>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Pricing Section -->
+    <section class="container pricing-section" id="pricing">
+      <div class="sec-header">
+        <h2>Flexible Engagement Plans</h2>
+        <p>Designed to accelerate your path to high-risk conformity assessment before August 2, 2026.</p>
+      </div>
+      
+      <div class="pricing-grid">
+        <!-- Tier 1 -->
+        <div class="pricing-card">
+          <span class="plan-name">Checklist Accelerator</span>
+          <div class="plan-price">€4,500<span>/ one-time</span></div>
+          <p class="plan-desc">Accelerate your gap assessment by mapping math tests to your existing policy checklist.</p>
+          <ul class="plan-features">
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>OnlyOS compliance starter pack</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>DGV offline devkit scripts</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Standard 8-card local test suite</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Self-serve documentation templates</span></li>
+          </ul>
+          <a href="#audit-request" class="btn" onclick="selectPricing('Checklist Accelerator')">Select Plan</a>
+        </div>
+        
+        <!-- Tier 2 -->
+        <div class="pricing-card featured">
+          <span class="badge">Most Popular</span>
+          <span class="plan-name" style="color: var(--primary);">Paid Pilot / PoC</span>
+          <div class="plan-price">€18,500<span>/ 6 weeks</span></div>
+          <p class="plan-desc">Custom integration on 1–2 high-risk systems to generate auditor-ready evidence packs.</p>
+          <ul class="plan-features">
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>All v0.3.0 23 DGV claim validations</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Integration of Only-Lang safety filters</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Auditor-ready evidence package</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Conformity assessment documentation</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>1-year developer support</span></li>
+          </ul>
+          <a href="#audit-request" class="btn primary" onclick="selectPricing('Paid Pilot')">Start PoC Pilot</a>
+        </div>
+        
+        <!-- Tier 3 -->
+        <div class="pricing-card">
+          <span class="plan-name">Enterprise Suite</span>
+          <div class="plan-price">Custom<span>/ annual</span></div>
+          <p class="plan-desc">Continuous gating, real-time monitoring, and automatic compliance pack updates.</p>
+          <ul class="plan-features">
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Full multi-agent gating integration</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Real-time dashboard telemetry logs</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Continuous drift and bias audits</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Compliance Success Performance Bonus option</span></li>
+            <li class="plan-feature"><span class="plan-feature-icon">✓</span><span>Dedicated TAM & Notified Body support</span></li>
+          </ul>
+          <a href="#audit-request" class="btn" onclick="selectPricing('Enterprise')">Contact Sales</a>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Contact Form & Footer -->
+    <section class="footer-form-section" id="audit-request">
+      <div class="container form-grid">
+        <div class="form-text">
+          <h2>Request a Compliance Proposal</h2>
+          <p>Schedule a technical discovery session with our safety architects. We will review your current gap analysis and map your highest-risk obligation points to mathematical verification engines.</p>
+          <div class="form-bullets">
+            <div class="form-bullet">
+              <div class="form-bullet-icon">✓</div>
+              <div><strong>Conformity Readiness Report</strong>: Custom mapping of the 23 DGV tests to your specific AI models.</div>
+            </div>
+            <div class="form-bullet">
+              <div class="form-bullet-icon">✓</div>
+              <div><strong>Fines Protection Guarantee</strong>: Mathematical safety gating blocks violations prior to execution.</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-card">
+          <form id="lead-form" onsubmit="submitForm(event)">
+            <div class="form-group">
+              <label for="contact-name">Contact Name</label>
+              <input type="text" id="contact-name" class="form-control" placeholder="Alice Smith" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="contact-email">Corporate Email</label>
+                <input type="email" id="contact-email" class="form-control" placeholder="alice@enterprise.com" required />
+              </div>
+              <div class="form-group">
+                <label for="contact-org">Organization</label>
+                <input type="text" id="contact-org" class="form-control" placeholder="Acme Biotech" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="contact-plan">Target Plan</label>
+                <select id="contact-plan" class="form-control">
+                  <option value="Paid Pilot">Paid Pilot / PoC (Recommended)</option>
+                  <option value="Checklist Accelerator">Checklist Accelerator</option>
+                  <option value="Enterprise">Enterprise Compliance Suite</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="contact-deadline">Conformity Deadline</label>
+                <input type="date" id="contact-deadline" class="form-control" value="2026-08-02" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="contact-message">AI System Description</label>
+              <textarea id="contact-message" class="form-control" placeholder="Describe your high-risk AI system (e.g. recruitment screening models, diagnostic triage...)" style="height: 100px; resize: none;" required></textarea>
+            </div>
+            <button type="submit" class="btn primary" style="width: 100%; justify-content: center; padding: 12px;" id="btn-submit-lead">Submit Request</button>
+          </form>
+          <div id="form-success" style="display: none; text-align: center; padding: 20px;">
+            <span style="font-size: 48px; color: var(--accent);">✓</span>
+            <h3 style="margin-top: 10px;">Audit Proposal Requested</h3>
+            <p style="font-size: 13px; color: var(--muted); margin-top: 8px;">Our AI safety architects will reach out within 24 hours with a custom compliance gap assessment blueprint.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 OnlyOS Compliance Suite. Built by Only Institute / PIR. All rights reserved.</p>
+      <p style="margin-top: 6px; font-size: 11px; color: var(--border);">All compliance metrics and testing evidence packages map directly to Regulation (EU) 2024/1689 requirements.</p>
+    </div>
+  </footer>
+
+  <script>
+    const DGV_23_TESTS = [
+      { id: "DGV-TC-001", name: "Deterministic Execution", layer: "L6 Risk", desc: "Given identical inputs, the system yields identical outputs down to the last bit, preventing floating-point drift." },
+      { id: "DGV-TC-002", name: "Boundary Enforcement", layer: "L6 Risk", desc: "AI proposals that breach mathematical safety limits are blocked, keeping the gate strictly closed." },
+      { id: "DGV-TC-003", name: "Policy-Compliant Execution", layer: "L7 Appl", desc: "Confirms that compliant, within-limit actions run successfully and are not falsely blocked by safety gates." },
+      { id: "DGV-TC-004", name: "Instruction Hierarchy", layer: "L6 Risk", desc: "Guarantees system safety constraints take absolute precedence over agent or user-proposed scripts." },
+      { id: "DGV-TC-005", name: "Refusal Correctness", layer: "L7 Appl", desc: "Ensures out-of-equilibrium or corrupted operations return explicit refusal telemetry and fail-closed gates." },
+      { id: "DGV-TC-006", name: "Audit Log Completeness", layer: "L4 Evid", desc: "Records every proposal, gate decision, capability token, and execution receipt in a forensic timeline." },
+      { id: "DGV-TC-007", name: "Provenance Traceability", layer: "L2 Comp", desc: "Traces the legitimacy of decrypted state variables and configuration limits back to original source keys." },
+      { id: "DGV-TC-008", name: "Stability Under Repetition", layer: "L5 Sess", desc: "Guarantees long-term stability and zero numeric drift under continuous recurrent agent executions." },
+      { id: "DGV-TC-009", name: "Token Replay Resistance", layer: "L2 Comp", desc: "Intercepts and rejects reused capability tokens, enforcing one-time-use validation checks." },
+      { id: "DGV-TC-010", name: "Fail-Closed Latency", layer: "L7 Appl", desc: "Instantly closes safety gates if verification or gating operations exceed the allowed 50ms threshold." },
+      { id: "DGV-TC-011", name: "Explanation Traceability", layer: "L6 Risk", desc: "Exports a complete step-level reasoning chain including active policy parameters and resolved residuals." },
+      { id: "DGV-TC-012", name: "Adversarial Prompt Resistance", layer: "L3 Rout", desc: "Intercepts and rejects prompt injection attempts or system-level configuration override tokens." },
+      { id: "DGV-TC-013", name: "Statistical Fairness", layer: "L6 Risk", desc: "Verifies automated gating decisions do not violate demographical impact parity constraints (0.80 - 1.25)." },
+      { id: "DGV-TC-014", name: "Provenance Watermarking", layer: "L2 Comp", desc: "Cryptographically signs all output states with the runtime's key to provide auditable integrity wrappers." },
+      { id: "DGV-TC-015", name: "Governance Heartbeat", layer: "L4 Evid", desc: "Fails closed immediately if the audit logger or logging daemon drops connection or becomes unresponsive." },
+      { id: "DGV-TC-016", name: "Codon Delegation Lineage", layer: "L1 Auth", desc: "Validates codon delegation chains and hash paths down to the active agent, preventing unauthorized delegation." },
+      { id: "DGV-TC-017", name: "RLWE Enclave Binding", layer: "L2 Comp", desc: "Binds Ring-LWE private keys inside TEE enclaves, preventing key tampering." },
+      { id: "DGV-TC-018", name: "Spectral Drift Containment", layer: "L6 Risk", desc: "Projects instruction sequences onto a quasi-periodic phi-lattice to check for semantic drifts." },
+      { id: "DGV-TC-019", name: "Non-Expansive Repair", layer: "L6 Risk", desc: "Heals drifted state values using contractive Banach/Hilbert contraction mappings that do not expand state distance." },
+      { id: "DGV-TC-020", name: "Transitive Revocation", layer: "L1 Auth", desc: "Cascades authorization revocation down the delegation chain when a parent authority is revoked." },
+      { id: "DGV-TC-021", name: "Consensus Escape Bypass", layer: "L1 Auth", desc: "Enforces M-of-N consensus signatures and prevents bypass attempts of multi-signature requirements." },
+      { id: "DGV-TC-022", name: "Double-Spend Prevention", layer: "L5 Sess", desc: "Enforces single-use capability tokens, blocking duplicate execution attempts of a spent token." },
+      { id: "DGV-TC-023", name: "Coherence Auto-Escalation", layer: "L6 Risk", desc: "Escalates borderline semantic drift or risk metrics to human oversight rather than allowing automated bypass." }
+    ];
+
+    const SCENARIOS = {
+      compliant: {
+        script: "harmony(1e-12)\nevolve(2)\ndata(1000)\nresidual()",
+        log: `Starting DGV execution validation...\nExecuting script commands:\nharmony(1e-12) -> Epsilon bounds set.\nevolve(2) -> System signs generated.\ndata(1000) -> Loading baseline budget parameters.\nresidual() -> Running healer check.\nHealed sectors index: []\nFinal residual: 0.000000000000\nVerification complete. Gate ALLOW.`,
+        sectors: ["ok", "ok", "ok", "ok"],
+        status: "GATE ALLOW",
+        statusClass: "allow"
+      },
+      injection: {
+        script: "harmony(1e-12)\nevolve(2)\ndata(1000)\nresidual() --simulate-prompt-injection",
+        log: `Starting DGV execution validation...\nEvaluating script parameters...\nSECURITY FAULT: Command injection signature match.\nrejection_reason: adversarial_prompt_injection_detected\nEnforcing active safety gate shutdown.\nGate status: CLOSED.`,
+        sectors: ["corrupted", "corrupted", "corrupted", "corrupted"],
+        status: "GATE DENY",
+        statusClass: "deny"
+      },
+      latency: {
+        script: "harmony(1e-12)\nevolve(2)\ndata(1000)\nresidual() --simulate-latency-ms=100",
+        log: `Starting DGV execution validation...\nEvaluating gating node latency...\nLatency timeout: 100ms measured (threshold 50ms).\nrejection_reason: fail_closed_latency_timeout_exceeded\nFail-closed policy activated. Gate status: CLOSED.`,
+        sectors: ["healing", "healing", "healing", "healing"],
+        status: "GATE DENY",
+        statusClass: "deny"
+      },
+      bias: {
+        script: "harmony(1e-12)\nevolve(2)\ndata(1000)\nresidual() --simulate-bias-check",
+        log: `Starting DGV execution validation...\nRunning cohort metrics evaluation...\nDisparate impact ratio: 0.85 (compliant bounds 0.80 - 1.25).\nFairness check: PASSED.\nGate status: OPEN.`,
+        sectors: ["ok", "ok", "ok", "ok"],
+        status: "GATE ALLOW",
+        statusClass: "allow"
+      }
+    };
+
+    function renderTestsGrid() {
+      const container = document.getElementById('dgv-tests-showcase');
+      if (!container) return;
+      container.innerHTML = DGV_23_TESTS.map(t => `
+        <div class="test-card" onclick="runScannerWithTest('${t.id}')">
+          <div class="test-card-header">
+            <span class="test-card-id">${t.id}</span>
+            <span class="test-card-layer">${t.layer}</span>
+          </div>
+          <div class="test-card-title">${t.name}</div>
+          <div class="test-card-desc">${t.desc}</div>
+        </div>
+      `).join('');
+    }
+
+    function selectPreset(key) {
+      // Toggle button classes
+      ['compliant', 'injection', 'latency', 'bias'].forEach(k => {
+        const btn = document.getElementById('btn-pre-' + k);
+        if (btn) btn.classList.toggle('active', k === key);
+      });
+      
+      const overlay = document.getElementById('scan-overlay');
+      const statusText = document.getElementById('scan-status-text');
+      
+      if (overlay) {
+        overlay.classList.add('active');
+        if (key === 'compliant') statusText.textContent = 'RUNNING HARMONY SOLVER...';
+        if (key === 'injection') statusText.textContent = 'INTERCEPTING COMMAND INJECTION...';
+        if (key === 'latency') statusText.textContent = 'CHECKING GATE TIMEOUT BOUNDS...';
+        if (key === 'bias') statusText.textContent = 'EVALUATING DISPARATE RATIOS...';
+      }
+      
+      setTimeout(() => {
+        if (overlay) overlay.classList.remove('active');
+        const sc = SCENARIOS[key];
+        if (!sc) return;
+        
+        // Update console
+        const consolePre = document.getElementById('console-output');
+        if (consolePre) consolePre.textContent = sc.script + '\n\n' + sc.log;
+        
+        // Update sectors
+        for (let i = 0; i < 4; i++) {
+          const cell = document.getElementById('cell-' + i);
+          if (cell) {
+            cell.className = 'sector-cell';
+            const state = sc.sectors[i];
+            if (state === 'ok') {
+              cell.textContent = `SEC ${i}: OK`;
+            } else if (state === 'corrupted') {
+              cell.classList.add('corrupted');
+              cell.textContent = `SEC ${i}: SHUTDOWN`;
+            } else if (state === 'healing') {
+              cell.classList.add('healing');
+              cell.textContent = `SEC ${i}: TIMEOUT`;
+            }
+          }
+        }
+        
+        // Update badge
+        const badge = document.getElementById('gate-status-badge');
+        if (badge) {
+          badge.textContent = sc.status;
+          badge.className = 'gate-status-pill ' + sc.statusClass;
+        }
+      }, 1000);
+    }
+
+    function runScannerWithTest(testId) {
+      // Direct user attention to the scanner and run corresponding preset
+      document.getElementById('scanner').scrollIntoView({ behavior: 'smooth' });
+      
+      if (["DGV-TC-001", "DGV-TC-003", "DGV-TC-006", "DGV-TC-007", "DGV-TC-008", "DGV-TC-014", "DGV-TC-019"].includes(testId)) {
+        selectPreset('compliant');
+      } else if (["DGV-TC-002", "DGV-TC-004", "DGV-TC-005", "DGV-TC-009", "DGV-TC-012", "DGV-TC-016", "DGV-TC-017", "DGV-TC-018", "DGV-TC-020", "DGV-TC-021", "DGV-TC-022"].includes(testId)) {
+        selectPreset('injection');
+      } else if (["DGV-TC-010", "DGV-TC-015"].includes(testId)) {
+        selectPreset('latency');
+      } else if (["DGV-TC-013", "DGV-TC-011", "DGV-TC-023"].includes(testId)) {
+        selectPreset('bias');
+      }
+    }
+
+    function selectPricing(planName) {
+      const select = document.getElementById('contact-plan');
+      if (select) {
+        select.value = planName;
+      }
+    }
+
+    function submitForm(e) {
+      e.preventDefault();
+      const form = document.getElementById('lead-form');
+      const success = document.getElementById('form-success');
+      if (form && success) {
+        form.style.display = 'none';
+        success.style.display = 'block';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderTestsGrid();
+      // Select compliant preset by default
+      selectPreset('compliant');
+    });
+  </script>
+</body>
+</html>

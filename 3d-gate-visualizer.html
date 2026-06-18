@@ -1,0 +1,2511 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyOS - 3D Compliance Gate Visualizer</title>
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Three.js + OrbitControls CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(15, 23, 48, 0.75);
+      --border: rgba(43, 54, 90, 0.6);
+      --text: #e6e8ef;
+      --muted: #aab2d5;
+      --primary: #60a5fa;
+      --accent: #2dd4bf;
+      --purple: #a855f7;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --ok: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+    }
+
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Floating Side UI */
+    .visualizer-layout {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      grid-template-rows: 100%;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .main-view {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+      pointer-events: none;
+    }
+
+    .topbar-branding {
+      backdrop-filter: blur(12px);
+      background: rgba(11, 16, 32, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      align-self: flex-start;
+      pointer-events: auto;
+    }
+
+    .topbar-logo {
+      height: 24px;
+      display: block;
+    }
+
+    .topbar-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .topbar-subtitle {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    /* Human-in-the-loop manual overlay */
+    #hitl-overlay {
+      position: absolute;
+      top: 30%;
+      left: 35%;
+      transform: translate(-50%, -50%);
+      backdrop-filter: blur(16px);
+      background: rgba(15, 23, 48, 0.9);
+      border: 2px solid var(--warn);
+      border-radius: 16px;
+      padding: 24px;
+      width: 300px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(245, 158, 11, 0.25);
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    #hitl-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .hitl-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--warn);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .hitl-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .hitl-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    /* HUD Legend */
+    .hud-legend {
+      align-self: flex-start;
+      backdrop-filter: blur(12px);
+      background: rgba(11, 16, 32, 0.55);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    /* Sidebar controls */
+    .sidebar-panel {
+      background: var(--panel);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid var(--border);
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-height: 100%;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 16px 20px;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .telemetry-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .telemetry-lbl {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .telemetry-val {
+      font-size: 14px;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .status-pill.allow { background: rgba(34, 197, 94, 0.15); color: var(--ok); border: 1px solid var(--ok); }
+    .status-pill.deny { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+    .status-pill.escalate { background: rgba(245, 158, 11, 0.15); color: var(--warn); border: 1px solid var(--warn); }
+    .status-pill.idle { background: rgba(255, 255, 255, 0.05); color: var(--muted); border: 1px solid var(--border); }
+
+    .test-suite-container {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(96, 165, 250, 0.5) rgba(255, 255, 255, 0.04);
+    }
+
+    .dgv-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .dgv-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(96, 165, 250, 0.3);
+    }
+
+    .dgv-card.active {
+      background: rgba(96, 165, 250, 0.06);
+      border-color: var(--primary);
+    }
+
+    .dgv-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .dgv-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .dgv-layer {
+      font-size: 9px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 1px 6px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .dgv-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .dgv-actions {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    /* Styled buttons */
+    .btn {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn.success-play {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.25);
+      color: var(--ok);
+    }
+
+    .btn.success-play:hover {
+      background: rgba(34, 197, 94, 0.18);
+    }
+
+    .btn.fail-play {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.25);
+      color: var(--danger);
+    }
+
+    .btn.fail-play:hover {
+      background: rgba(239, 68, 68, 0.18);
+    }
+
+    .console-panel {
+      height: 150px;
+      background: #050a14;
+      border-top: 1px solid var(--border);
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(96, 165, 250, 0.5) rgba(255, 255, 255, 0.04);
+    }
+
+    .console-header {
+      font-size: 9px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .console-code {
+      color: #94a3b8;
+      white-space: pre-wrap;
+    }
+
+    /* Custom Premium Scrollbar styling */
+    .test-suite-container::-webkit-scrollbar,
+    .console-panel::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    .test-suite-container::-webkit-scrollbar-track,
+    .console-panel::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 6px;
+      border-left: 1px solid rgba(255, 255, 255, 0.02);
+    }
+
+    .test-suite-container::-webkit-scrollbar-thumb,
+    .console-panel::-webkit-scrollbar-thumb {
+      background: rgba(96, 165, 250, 0.6);
+      border-radius: 6px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+      box-shadow: inset 0 0 6px rgba(96, 165, 250, 0.35);
+    }
+
+    .test-suite-container::-webkit-scrollbar-thumb:hover,
+    .console-panel::-webkit-scrollbar-thumb:hover {
+      background: rgba(96, 165, 250, 0.9);
+    }
+
+    /* Trace Panel Overlay styling */
+    .trace-panel {
+      backdrop-filter: blur(12px);
+      background: rgba(11, 16, 32, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      width: 380px;
+      max-width: 100%;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      align-self: flex-start;
+      flex: 1;
+      max-height: calc(100vh - 250px);
+      overflow-y: auto;
+    }
+
+    .trace-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .trace-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .trace-step {
+      display: flex;
+      gap: 12px;
+      opacity: 0.4;
+      transition: all 0.3s ease;
+    }
+
+    .trace-step.active {
+      opacity: 1;
+    }
+
+    .trace-step.passed {
+      opacity: 1;
+    }
+
+    .trace-step.failed {
+      opacity: 1;
+    }
+
+    .step-marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .step-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--muted);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 800;
+      transition: all 0.3s ease;
+    }
+
+    .trace-step.active .step-dot {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+      background: var(--primary);
+      color: var(--bg);
+    }
+
+    .trace-step.passed .step-dot {
+      border-color: var(--ok);
+      background: var(--ok);
+      color: var(--bg);
+    }
+
+    .trace-step.failed .step-dot {
+      border-color: var(--danger);
+      background: var(--danger);
+      color: var(--bg);
+    }
+
+    .step-line {
+      width: 2px;
+      flex: 1;
+      background: var(--border);
+      margin-top: 4px;
+      margin-bottom: 4px;
+      min-height: 15px;
+    }
+
+    .trace-step:last-child .step-line {
+      display: none;
+    }
+
+    .step-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .step-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .step-detail {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.3;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .trace-step.active .step-name {
+      color: var(--primary);
+    }
+
+    /* Explicit compliance state badges */
+    .step-badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      margin-top: 4px;
+      width: fit-content;
+    }
+
+    .step-badge.allow { background: rgba(34, 197, 94, 0.15); color: var(--ok); border: 1px solid rgba(34, 197, 94, 0.3); }
+    .step-badge.hold { background: rgba(245, 158, 11, 0.15); color: var(--warn); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .step-badge.narrow { background: rgba(168, 85, 247, 0.15); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.3); }
+    .step-badge.escalate { background: rgba(245, 158, 11, 0.15); color: var(--warn); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .step-badge.refuse { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .step-badge.no-bind { background: rgba(148, 163, 184, 0.15); color: var(--muted); border: 1px solid rgba(148, 163, 184, 0.3); }
+    .step-badge.replay-verified { background: rgba(34, 197, 94, 0.15); color: var(--ok); border: 1px solid rgba(34, 197, 94, 0.3); }
+    .step-badge.replay-changed { background: rgba(245, 158, 11, 0.15); color: var(--warn); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .step-badge.tamper-detected { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* Hide trace panel on mobile layout to prevent clutter */
+    @media (max-width: 900px) {
+      .trace-panel {
+        display: none !important;
+      }
+    }
+
+    /* Mobile Responsive Layout and Horizontally Scrolling Cards */
+    @media (max-width: 900px) {
+      body {
+        overflow: hidden;
+      }
+      .visualizer-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
+        height: 100%;
+      }
+      .main-view {
+        height: auto;
+        padding: 16px;
+      }
+      .sidebar-panel {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        height: 380px;
+      }
+      .sidebar-header {
+        padding: 12px 16px;
+      }
+      .sidebar-header p {
+        display: none;
+      }
+      .telemetry-grid {
+        padding: 10px 16px;
+      }
+      #penalty-card {
+        padding: 8px 16px;
+      }
+      .test-suite-container {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        padding: 12px 16px !important;
+        gap: 12px;
+        flex: none;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+      }
+      .dgv-card {
+        min-width: 260px;
+        max-width: 260px;
+        margin-bottom: 0;
+        scroll-snap-align: start;
+        padding: 10px;
+      }
+      .dgv-title {
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+      .dgv-actions {
+        gap: 6px;
+      }
+      .btn {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+      .console-panel {
+        height: 110px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  
+  <div class="visualizer-layout">
+    <div class="main-view">
+      <!-- Branding Topbar -->
+      <div class="topbar-branding">
+        <a href="index.html" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
+          <img src="logo.png" alt="OnlyOS - Compliance" class="topbar-logo" />
+        </a>
+        <div class="topbar-divider"></div>
+        <div class="topbar-subtitle">3D Gating visualizer</div>
+      </div>
+      
+      <!-- HITL manual action overlay -->
+      <div id="hitl-overlay">
+        <div class="hitl-title">
+          <span>⚠️</span> Manual Authorization
+        </div>
+        <div class="hitl-desc">
+          OnlyOS Gate has escalated a transaction proposal. Acknowledge and resolve this human review constraint.
+        </div>
+        <div class="hitl-actions">
+          <button class="btn success-play" onclick="resolveHITL(true)">Approve Proposal</button>
+          <button class="btn fail-play" onclick="resolveHITL(false)">Deny Proposal</button>
+        </div>
+      </div>
+
+      <!-- Live Compliance Proof Trace Panel -->
+      <div class="trace-panel" id="trace-panel">
+        <div class="trace-title">
+          <span>📋 Live Compliance Proof Trace</span>
+          <span style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--muted);" id="trace-card-id">DGV-TC-001</span>
+        </div>
+        <div class="trace-steps">
+          <div class="trace-step" id="step-0">
+            <div class="step-marker">
+              <div class="step-dot">1</div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <div class="step-name">1. Proposal Submission</div>
+              <div class="step-detail" id="step-0-detail">AI Agent proposes action parameters...</div>
+            </div>
+          </div>
+          <div class="trace-step" id="step-1">
+            <div class="step-marker">
+              <div class="step-dot">2</div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <div class="step-name">2. Invariant Boundary Evaluation</div>
+              <div class="step-detail" id="step-1-detail">Evaluating policy equations...</div>
+            </div>
+          </div>
+          <div class="trace-step" id="step-2">
+            <div class="step-marker">
+              <div class="step-dot">3</div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <div class="step-name">3. Gating Resolution</div>
+              <div class="step-detail" id="step-2-detail">Determining safe bounds action...</div>
+              <div id="step-2-badge-container"></div>
+            </div>
+          </div>
+          <div class="trace-step" id="step-3">
+            <div class="step-marker">
+              <div class="step-dot">4</div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <div class="step-name">4. Cryptographic Receipt</div>
+              <div class="step-detail" id="step-3-detail">Awaiting execution telemetry seal...</div>
+              <div id="step-3-badge-container"></div>
+            </div>
+          </div>
+          <div class="trace-step" id="step-4">
+            <div class="step-marker">
+              <div class="step-dot">5</div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <div class="step-name">5. Deterministic Replay</div>
+              <div class="step-detail" id="step-4-detail">Awaiting attestation replay...</div>
+              <div id="step-4-badge-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HUD Legend -->
+      <div class="hud-legend">
+        <div style="font-size: 10px; font-weight:700; text-transform:uppercase; color:var(--muted); letter-spacing:0.5px; margin-bottom:4px;">Node Typology Legend</div>
+        <div class="legend-item"><div class="legend-color" style="background:#60a5fa; box-shadow: 0 0 8px #60a5fa;"></div><span>Client AI Agent (Emitting Proposals)</span></div>
+        <div class="legend-item"><div class="legend-color" style="background:#a855f7; box-shadow: 0 0 8px #a855f7;"></div><span>OnlyOS Math Gating Plane (Active Filter)</span></div>
+        <div class="legend-item"><div class="legend-color" style="background:#f59e0b; box-shadow: 0 0 8px #f59e0b;"></div><span>Human-in-the-Loop Loop (HITL Ring)</span></div>
+        <div class="legend-item"><div class="legend-color" style="background:#2dd4bf; box-shadow: 0 0 8px #2dd4bf;"></div><span>Safe Memory Store (Committed States)</span></div>
+      </div>
+    </div>
+    
+    <!-- Sidebar Control Panel -->
+    <div class="sidebar-panel">
+      <div class="sidebar-header">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 style="margin:0;">DGV Verification Deck</h2>
+          <button class="btn success-play" id="run-chaos-btn" style="padding:6px 12px; font-weight:700; background:rgba(239, 68, 68, 0.1); border-color:var(--danger); color:var(--danger); border-radius:8px;" onclick="runChaosFuzzer()">⚡ Run Chaos Fuzzer</button>
+        </div>
+        <p>Interactive 23-Point 3D Compliance Auditor</p>
+      </div>
+      
+      <div class="telemetry-grid">
+        <div class="telemetry-card">
+          <div class="telemetry-lbl">Gate Status</div>
+          <div class="telemetry-val"><span id="gate-pill" class="status-pill idle">IDLE</span></div>
+        </div>
+        <div class="telemetry-card">
+          <div class="telemetry-lbl">Evaluation Time</div>
+          <div class="telemetry-val" style="font-family:'JetBrains Mono', monospace;" id="gate-latency">-- ms</div>
+        </div>
+      </div>
+
+      <!-- Penalty / Risk Banner -->
+      <div id="penalty-card" style="display: none; padding: 12px 20px; background: rgba(239, 68, 68, 0.1); border-bottom: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; font-size: 12px; line-height: 1.4;">
+        <div style="font-weight: 700; text-transform: uppercase; font-size: 10px; color: var(--danger); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+          <span>🚨</span> Non-Compliance Penalty / Risk
+        </div>
+        <div id="penalty-text">--</div>
+      </div>
+      
+      <div class="test-suite-container" id="test-cards-list">
+        <!-- Javascript renders cards -->
+      </div>
+      
+      <div class="console-panel">
+        <div class="console-header">ONLY-Lang Script Console</div>
+        <pre class="console-code" id="console-code">// Select a verification scenario card above to load scripts...</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DGV_DATA = [
+      { id: "DGV-TC-001", name: "Deterministic Execution", layer: "L6 Risk", desc: "Verifies zero floating-point execution drift across identical parameters.", script: "harmony(1e-12)\nevolve(2)\nresidual()", penalty: "Mathematical drift breaks audibility. Fines up to €7.5M under Article 72 or 1.5% of global turnover for incorrect technical logs." },
+      { id: "DGV-TC-002", name: "Boundary Enforcement", layer: "L6 Risk", desc: "Intercepts and blocks state proposals breaching safety thresholds.", script: "harmony(1e-12)\nevolve(2)\nassert(x <= 1000)", penalty: "Safety boundaries breached. Triggers prohibited practices clauses under Article 5. Fines up to €35M or 7% of global turnover." },
+      { id: "DGV-TC-003", name: "Policy-Compliant Execution", layer: "L7 Appl", desc: "Confirms non-violating runs commit successfully.", script: "harmony(1e-12)\nevolve(2)\nassert(x <= 1000)", penalty: "Compliance monitoring failure. Classifies as a systemic failure to manage high-risk AI applications under Article 9. Fines up to €15M or 3% of turnover." },
+      { id: "DGV-TC-004", name: "Instruction Hierarchy", layer: "L6 Risk", desc: "Forces constraint priority over user scripts.", script: "security_policy(level=strict)\noverride(false)", penalty: "Security constraints bypassed. Exposes the organization to severe civil liability and enforcement shutdowns due to unauthorized execution." },
+      { id: "DGV-TC-005", name: "Refusal Correctness", layer: "L7 Appl", desc: "Verifies invalid operations yield fail-closed telemetry.", script: "harmony(1e-12)\nfail_closed()", penalty: "Dangerous requests accepted instead of refused. Severe reputational damage, direct civil liability, and breach of safety duties." },
+      { id: "DGV-TC-006", name: "Audit Log Completeness", layer: "L4 Evid", desc: "Commits immutable hashes of every gate transition.", script: "harmony(1e-12)\nlog(evidence_hash)", penalty: "Immutable logs missing. Inability to verify compliance state to regulators. Penalties of up to €15M or 3% of turnover under Article 12." },
+      { id: "DGV-TC-007", name: "Provenance Traceability", layer: "L2 Comp", desc: "Traces decryption credentials to source authority keys.", script: "decrypt(token, sign_key)", penalty: "Unverifiable author keys. High vulnerability to supply-chain attacks, impersonation, and direct breach of accountability standards." },
+      { id: "DGV-TC-008", name: "Stability Under Repetition", layer: "L5 Sess", desc: "Guarantees zero numeric divergence under recurrent loops.", script: "loop(100) { evolve(2) }", penalty: "Divergence under recursion causes infinite loops/state collapse. System crashes lead to severe business interruption liabilities." },
+      { id: "DGV-TC-009", name: "Token Replay Resistance", layer: "L2 Comp", desc: "Enforces single-use capability constraints.", script: "verify_nonce(178058789)\nuse_once()", penalty: "Double-execution / Replay vulnerability. Enables unauthorized state mutations, resulting in contract fraud liabilities and system exploits." },
+      { id: "DGV-TC-010", name: "Fail-Closed Latency", layer: "L7 Appl", desc: "Shuts gates if evaluation exceeds 50ms bounds.", script: "residual() --simulate-latency-ms=100", penalty: "Slow gate response fails open instead of closed. Exploits bypass verification gates, violating real-time monitoring mandates under Article 15." },
+      { id: "DGV-TC-011", name: "Explanation Traceability", layer: "L6 Risk", desc: "Exports complete step-level residual logs.", script: "harmony(1e-12)\nresidual() --simulate-explain", penalty: "Lack of model explanation traces. Violates Article 13 transparency requirements. Fines up to €15M or 3% of global turnover." },
+      { id: "DGV-TC-012", name: "Adversarial Prompt Resistance", layer: "L3 Rout", desc: "Stops prompt injections and configuration bypass attempts.", script: "residual() --simulate-prompt-injection", penalty: "Prompt injection breaches security constraints. Leads to unauthorized data exfiltration, system takeover, and severe data privacy violations." },
+      { id: "DGV-TC-013", name: "Statistical Fairness", layer: "L6 Risk", desc: "Enforces disparate impact ratio check bounds (0.80 - 1.25).", script: "residual() --simulate-bias-check", penalty: "System exhibits demographic bias. Violates anti-discrimination laws and Article 10 data quality rules. Fines up to €30M." },
+      { id: "DGV-TC-014", name: "Provenance Watermarking", layer: "L2 Comp", desc: "Signs output states cryptographically with the system key.", script: "watermark(state, key)", penalty: "Unwatermarked generative outputs. Direct violation of Article 52 watermark mandates, exposing firm to mandatory recall and regulatory audits." },
+      { id: "DGV-TC-015", name: "Governance Heartbeat", layer: "L4 Evid", desc: "Fails closed if logger connection becomes unresponsive.", script: "heartbeat() --simulate-heartbeat-failure", penalty: "System operates while telemetry monitor is disconnected. Violates Article 9 continuous risk management systems, prompting immediate operational ban." },
+      { id: "DGV-TC-016", name: "Codon Delegation Lineage", layer: "L1 Auth", desc: "Validates codon delegation chains and hash paths down to the active agent.", script: "residual() --simulate-codon-delegation", penalty: "Forged or corrupted delegation chain permits unauthorized actions, violating human oversight & traceability requirements." },
+      { id: "DGV-TC-017", name: "RLWE Enclave Binding", layer: "L2 Comp", desc: "Binds Ring-LWE private keys inside TEE enclaves to prevent tampering.", script: "residual() --simulate-rlwe-signature", penalty: "Untrusted signature indicates compromised validator key or tampered enclave, breaching security and integrity guarantees." },
+      { id: "DGV-TC-018", name: "Spectral Drift Containment", layer: "L6 Risk", desc: "Projects instruction sequences onto a quasi-periodic phi-lattice to detect drift.", script: "residual() --simulate-spectral-drift", penalty: "Semantic policy drift exceeds safe bounds. Permits model hallucination or rule evasion, violating proactive risk management policies." },
+      { id: "DGV-TC-019", name: "Non-Expansive Repair", layer: "L6 Risk", desc: "Heals drifted states using non-expansive Banach contraction mappings.", script: "residual() --simulate-non-expansive-repair", penalty: "Self-healing solver fails to converge, leaving the agent in a drifted or unstable state, causing system-wide degradation." },
+      { id: "DGV-TC-020", name: "Transitive Revocation", layer: "L1 Auth", desc: "Cascades revocation down the lineage tree when a parent authority is revoked.", script: "residual() --simulate-transitive-revocation", penalty: "Revoked authority token remains active, allowing unauthorized execution, representing a severe breach of authorization control." },
+      { id: "DGV-TC-021", name: "Consensus Escape Bypass", layer: "L1 Auth", desc: "Enforces M-of-N consensus signatures, strictly rejecting consensus bypasses.", script: "residual() --simulate-multisig-escape", penalty: "Consensus bypass enables single-signature execution of high-risk actions, violating Article 14 human oversight requirements." },
+      { id: "DGV-TC-022", name: "Double-Spend Prevention", layer: "L5 Sess", desc: "Blocks duplicate execution attempts of a single-use authorization token.", script: "residual() --simulate-double-spend", penalty: "Re-use of signed capability tokens leads to duplicate financial or state modifications, indicating double-spend vulnerabilities." },
+      { id: "DGV-TC-023", name: "Coherence Auto-Escalation", layer: "L6 Risk", desc: "Escalates borderline semantic drift or risk metrics to human oversight.", script: "residual() --simulate-coherence-escalation", penalty: "Borderline policy risks are resolved without human-in-the-loop validation, violating Article 14 human veto and control principles." }
+    ];
+
+    let activeCardId = null;
+    let scene, camera, renderer, controls;
+    let clientNode, gatingNode, databaseNode, hitlNode, gateBarrierMesh;
+    let gateStatusRing;
+    let particles = [];
+    let explosionParticles = [];
+    let activeHeartbeat = true;
+    let heartbeatBeam = null;
+    let activeSimulation = null; // { testId, success }
+    let activeHITLCallback = null;
+
+    // Trace sequence mapping for 23 DGV test cards
+    const CARD_TRACES = {
+      "DGV-TC-001": {
+        success: {
+          step0: "AI Agent proposes state evolution with strict parameters (evolve(2)).",
+          step1: "Verify execution drift limit delta <= 1e-12 across parallel compute threads.",
+          step2: { status: "ALLOW", text: "Gating plane opens: execution is verified deterministic." },
+          step3: { status: "ALLOW", text: "Receipt sealed: SHA256: 3a9e7f... Signed by Secure Enclave key." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay attestation confirms zero drift across 100 identical run iterations." }
+        },
+        failure: {
+          step0: "AI Agent proposes state evolution with strict parameters (evolve(2)).",
+          step1: "Verify execution drift limit delta <= 1e-12. Detected residual = 4.3e-7.",
+          step2: { status: "REFUSE", text: "Gating plane closes: execution drift detected." },
+          step3: { status: "REFUSE", text: "Receipt sealed: execution halted. Error code DGV-ERR-001." },
+          step4: { status: "REPLAY CHANGED", text: "Replay attestation fails: drift results in non-deterministic outcomes." }
+        }
+      },
+      "DGV-TC-002": {
+        success: {
+          step0: "AI Agent proposes state update with value x = 1200.",
+          step1: "Evaluate policy condition assert(x <= 1000). Constraint check failed.",
+          step2: { status: "REFUSE", text: "Gating plane closes: boundary violation blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: violation blocked. Error code DGV-ERR-002." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay attestation confirms boundary enforcement is active." }
+        },
+        failure: {
+          step0: "AI Agent proposes state update with value x = 1200.",
+          step1: "Evaluate policy condition assert(x <= 1000). Bypass detected.",
+          step2: { status: "ALLOW", text: "Gating plane opens: illegal boundary state committed." },
+          step3: { status: "ALLOW", text: "Receipt sealed: boundary leak recorded in transaction log." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms boundary bypass: illegal state committed." }
+        }
+      },
+      "DGV-TC-003": {
+        success: {
+          step0: "AI Agent proposes state update with value x = 800.",
+          step1: "Evaluate policy condition assert(x <= 1000). Constraint check passed.",
+          step2: { status: "ALLOW", text: "Gating plane opens: policy is fully compliant." },
+          step3: { status: "ALLOW", text: "Receipt sealed: SHA256: 4b2f9a... Execution success." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies state transition is correct and matches policy." }
+        },
+        failure: {
+          step0: "AI Agent proposes state update with value x = 1500.",
+          step1: "Evaluate policy condition assert(x <= 1000). Constraint check failed.",
+          step2: { status: "REFUSE", text: "Gating plane closes: non-compliant execution blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: non-compliant execution denied. Error code DGV-ERR-003." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms correct policy block." }
+        }
+      },
+      "DGV-TC-004": {
+        success: {
+          step0: "Agent proposes script override to disable strict security policy.",
+          step1: "Verify hierarchical override constraints (override=false).",
+          step2: { status: "REFUSE", text: "Gating plane closes: user script override is rejected." },
+          step3: { status: "REFUSE", text: "Receipt sealed: instruction hierarchy maintained. Error code DGV-ERR-004." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms security policy remains strictly active." }
+        },
+        failure: {
+          step0: "Agent proposes script override to disable strict security policy.",
+          step1: "Verify hierarchical override constraints. Security policies bypassed.",
+          step2: { status: "ALLOW", text: "Gating plane opens: user script overrides security policy." },
+          step3: { status: "ALLOW", text: "Receipt sealed: hierarchy bypassed. Error code DGV-ERR-004." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms system security constraints were deactivated." }
+        }
+      },
+      "DGV-TC-005": {
+        success: {
+          step0: "Agent proposes transaction execution containing illegal instruction fail_closed().",
+          step1: "Verify safety parameters and instruction constraints.",
+          step2: { status: "REFUSE", text: "Gating plane closes: refusal triggered successfully." },
+          step3: { status: "REFUSE", text: "Receipt sealed: refusal correctness verified. Error code DGV-ERR-005." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies illegal instruction was correctly refused." }
+        },
+        failure: {
+          step0: "Agent proposes transaction execution containing illegal instruction fail_closed().",
+          step1: "Verify safety parameters. Refusal engine is unresponsive.",
+          step2: { status: "ALLOW", text: "Gating plane opens: illegal instruction permitted to execute." },
+          step3: { status: "ALLOW", text: "Receipt sealed: refusal engine failure logged." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms illegal instruction was executed." }
+        }
+      },
+      "DGV-TC-006": {
+        success: {
+          step0: "Agent proposes action, triggering state mutation.",
+          step1: "Compute and log SHA256 transition hash (log(evidence_hash)).",
+          step2: { status: "ALLOW", text: "Gating plane opens: mutation permitted." },
+          step3: { status: "ALLOW", text: "Receipt sealed: evidence hash immutably committed to ledger." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay reads log ledger: all transition evidence hashes verified." }
+        },
+        failure: {
+          step0: "Agent proposes action, triggering state mutation.",
+          step1: "Log mutation. Integrity verification fails.",
+          step2: { status: "ALLOW", text: "Gating plane opens: action completes without valid log." },
+          step3: { status: "ALLOW", text: "Receipt sealed: incomplete logging recorded." },
+          step4: { status: "TAMPER DETECTED", text: "Replay attestation detects missing or altered audit log traces." }
+        }
+      },
+      "DGV-TC-007": {
+        success: {
+          step0: "Agent proposes action signed with credential token.",
+          step1: "Evaluate token signature against registered public keys.",
+          step2: { status: "ALLOW", text: "Gating plane opens: provenance key is valid." },
+          step3: { status: "ALLOW", text: "Receipt sealed: key verified by authority source." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms signature matches active authority lineage." }
+        },
+        failure: {
+          step0: "Agent proposes action signed with invalid key.",
+          step1: "Evaluate token signature. Registry check failed.",
+          step2: { status: "REFUSE", text: "Gating plane closes: unsigned or forged token blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: verification failure. Error code DGV-ERR-007." },
+          step4: { status: "TAMPER DETECTED", text: "Replay detects signature mismatch / forged source key." }
+        }
+      },
+      "DGV-TC-008": {
+        success: {
+          step0: "Agent proposes recurrent loops to execute action 100 times.",
+          step1: "Verify loop execution drift limits for numeric divergence.",
+          step2: { status: "ALLOW", text: "Gating plane opens: state remains stable." },
+          step3: { status: "ALLOW", text: "Receipt sealed: loop completed with zero cumulative drift." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms stable execution over repeated cycles." }
+        },
+        failure: {
+          step0: "Agent proposes recurrent loops to execute action 100 times.",
+          step1: "Verify loop execution. Cumulative drift exceeds safe bounds.",
+          step2: { status: "REFUSE", text: "Gating plane closes: infinite drift / state collapse blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: execution halted. Error code DGV-ERR-008." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms loop divergence, leading to state corruption." }
+        }
+      },
+      "DGV-TC-009": {
+        success: {
+          step0: "Agent attempts to reuse token nonce=178058789.",
+          step1: "Evaluate nonce against spent tokens registry.",
+          step2: { status: "REFUSE", text: "Gating plane closes: double-use token rejected." },
+          step3: { status: "REFUSE", text: "Receipt sealed: replay attempt blocked. Error code DGV-ERR-009." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms double-use block is functional." }
+        },
+        failure: {
+          step0: "Agent attempts to reuse token nonce=178058789.",
+          step1: "Evaluate nonce. Registry check bypassed.",
+          step2: { status: "ALLOW", text: "Gating plane opens: double-spend transaction executed." },
+          step3: { status: "ALLOW", text: "Receipt sealed: token reuse accepted in log." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms token replay allowed double-execution." }
+        }
+      },
+      "DGV-TC-010": {
+        success: {
+          step0: "Agent proposes action. Gating evaluation is delayed.",
+          step1: "Timer monitors evaluation latency. Threshold set to 50ms.",
+          step2: { status: "REFUSE", text: "Gating plane closes: evaluation timeout exceeded (50ms)." },
+          step3: { status: "REFUSE", text: "Receipt sealed: fail-closed safety block. Error code DGV-ERR-010." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms gate failed closed under simulated latency." }
+        },
+        failure: {
+          step0: "Agent proposes action. Gating evaluation is delayed.",
+          step1: "Timer monitors evaluation latency. Threshold bypassed.",
+          step2: { status: "ALLOW", text: "Gating plane opens: latency exceeded but gate failed open." },
+          step3: { status: "ALLOW", text: "Receipt sealed: slow execution completed." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms latency timeout bypass occurred." }
+        }
+      },
+      "DGV-TC-011": {
+        success: {
+          step0: "Agent proposes execution parameters.",
+          step1: "Generate and export step-level explanation logs.",
+          step2: { status: "ALLOW", text: "Gating plane opens: explanations generated." },
+          step3: { status: "ALLOW", text: "Receipt sealed: step-by-step traces written to log." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies explanation traces match execution path." }
+        },
+        failure: {
+          step0: "Agent proposes execution parameters.",
+          step1: "Generate explanation logs. Logging fails.",
+          step2: { status: "ALLOW", text: "Gating plane opens: action executes without explanations." },
+          step3: { status: "ALLOW", text: "Receipt sealed: missing explanation traces recorded." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms execution completed without trace details." }
+        }
+      },
+      "DGV-TC-012": {
+        success: {
+          step0: "Agent submits adversarial prompt (jailbreak attempt).",
+          step1: "Scan prompt semantic structure against policy filter rules.",
+          step2: { status: "REFUSE", text: "Gating plane closes: prompt injection blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: security breach refused. Error code DGV-ERR-012." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms adversarial payload blocked." }
+        },
+        failure: {
+          step0: "Agent submits adversarial prompt (jailbreak attempt).",
+          step1: "Scan prompt semantic structure. Scanners bypassed.",
+          step2: { status: "ALLOW", text: "Gating plane opens: jailbreak payload leaks to execution." },
+          step3: { status: "ALLOW", text: "Receipt sealed: adversarial exploit logged." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms system hijack via prompt injection." }
+        }
+      },
+      "DGV-TC-013": {
+        success: {
+          step0: "Agent proposes batch decisions with potential bias impact.",
+          step1: "Calculate impact ratio across demographic cohorts.",
+          step2: { status: "ALLOW", text: "Gating plane opens: impact ratio within safe bounds (0.80 - 1.25)." },
+          step3: { status: "ALLOW", text: "Receipt sealed: fairness check approved." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms decisions are statistically fair." }
+        },
+        failure: {
+          step0: "Agent proposes batch decisions with potential bias impact.",
+          step1: "Calculate impact ratio. Ratio falls outside safe bounds.",
+          step2: { status: "NARROW", text: "Gating plane narrows: cohort inputs constrained to enforce parity." },
+          step3: { status: "NARROW", text: "Receipt sealed: narrow correction active. Error code DGV-ERR-013." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies bias containment is active." }
+        }
+      },
+      "DGV-TC-014": {
+        success: {
+          step0: "Agent proposes to commit state outputs.",
+          step1: "Sign output state with watermarking key.",
+          step2: { status: "ALLOW", text: "Gating plane opens: state outputs successfully signed." },
+          step3: { status: "ALLOW", text: "Receipt sealed: cryptographic watermark injected." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies watermark signature matches the system key." }
+        },
+        failure: {
+          step0: "Agent proposes to commit state outputs.",
+          step1: "Sign output state. Watermark engine is offline.",
+          step2: { status: "ALLOW", text: "Gating plane opens: unsigned state outputs committed." },
+          step3: { status: "ALLOW", text: "Receipt sealed: watermarking check bypassed." },
+          step4: { status: "TAMPER DETECTED", text: "Replay detects missing watermark: output is untrusted." }
+        }
+      },
+      "DGV-TC-015": {
+        success: {
+          step0: "Agent proposes execution; heartbeat monitor is active.",
+          step1: "Verify connection status to telemetry database.",
+          step2: { status: "ALLOW", text: "Gating plane opens: heartbeat verified." },
+          step3: { status: "ALLOW", text: "Receipt sealed: database status active." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms continuous telemetry connectivity." }
+        },
+        failure: {
+          step0: "Agent proposes execution; heartbeat connection is lost.",
+          step1: "Verify connection status. Heartbeat fail-closed triggered.",
+          step2: { status: "REFUSE", text: "Gating plane closes: fail-closed on heartbeat loss." },
+          step3: { status: "REFUSE", text: "Receipt sealed: logging channel offline. Error code DGV-ERR-015." },
+          step4: { status: "TAMPER DETECTED", text: "Replay identifies system connection breach: logger offline." }
+        }
+      },
+      "DGV-TC-016": {
+        success: {
+          step0: "Agent proposes action delegated from parent authority.",
+          step1: "Verify delegation chain and hash paths back to root.",
+          step2: { status: "ALLOW", text: "Gating plane opens: codon chain is fully verified." },
+          step3: { status: "ALLOW", text: "Receipt sealed: codon signature match." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms delegation lineage integrity." }
+        },
+        failure: {
+          step0: "Agent proposes action; delegation signature is invalid.",
+          step1: "Verify delegation chain. Corrupt codon path detected.",
+          step2: { status: "REFUSE", text: "Gating plane closes: corrupted codon chain blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: delegation failure. Error code DGV-ERR-016." },
+          step4: { status: "TAMPER DETECTED", text: "Replay detects codon forgery / unauthorized delegation." }
+        }
+      },
+      "DGV-TC-017": {
+        success: {
+          step0: "Agent proposes action signed inside secure enclave.",
+          step1: "Verify Ring-LWE signature key binding status.",
+          step2: { status: "ALLOW", text: "Gating plane opens: RLWE signature is valid." },
+          step3: { status: "ALLOW", text: "Receipt sealed: verified cryptographic envelope." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms enclave boundary remains uncompromised." }
+        },
+        failure: {
+          step0: "Agent proposes action; enclave signature check failed.",
+          step1: "Verify Ring-LWE signature. Compromised key detected.",
+          step2: { status: "REFUSE", text: "Gating plane closes: enclave security breach detected." },
+          step3: { status: "REFUSE", text: "Receipt sealed: key compromised. Error code DGV-ERR-017." },
+          step4: { status: "TAMPER DETECTED", text: "Replay attestation rejects tampered validator signatures." }
+        }
+      },
+      "DGV-TC-018": {
+        success: {
+          step0: "Agent proposes instruction sequence mapping.",
+          step1: "Project instructions onto quasi-periodic phi-lattice.",
+          step2: { status: "ALLOW", text: "Gating plane opens: spectral drift is within safe bounds." },
+          step3: { status: "ALLOW", text: "Receipt sealed: instruction mapping verified." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies zero semantic drift across execution." }
+        },
+        failure: {
+          step0: "Agent proposes instruction sequence mapping.",
+          step1: "Project instructions. Semantic policy drift detected.",
+          step2: { status: "NARROW", text: "Gating plane narrows: policy execution limits constrained." },
+          step3: { status: "NARROW", text: "Receipt sealed: drift containment active. Error code DGV-ERR-018." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms policy containment bounds applied to drift." }
+        }
+      },
+      "DGV-TC-019": {
+        success: {
+          step0: "Agent proposes state with repair contraction parameters.",
+          step1: "Apply non-expansive Banach contraction mapping solver.",
+          step2: { status: "ALLOW", text: "Gating plane opens: state successfully healed." },
+          step3: { status: "ALLOW", text: "Receipt sealed: state healed and committed." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies state healed with zero convergence residual." }
+        },
+        failure: {
+          step0: "Agent proposes state with repair parameters.",
+          step1: "Apply Banach contraction mapping. Solver fails to converge.",
+          step2: { status: "REFUSE", text: "Gating plane closes: unhealed drifted state blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: state repair failed. Error code DGV-ERR-019." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms state remains unhealed and drifted." }
+        }
+      },
+      "DGV-TC-020": {
+        success: {
+          step0: "Agent proposes action signed by revoked parent key.",
+          step1: "Check status of parent key and cascade revocation.",
+          step2: { status: "REFUSE", text: "Gating plane closes: revoked parent key blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: transitively revoked. Error code DGV-ERR-020." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms parent key status cascade is active." }
+        },
+        failure: {
+          step0: "Agent proposes action signed by revoked parent key.",
+          step1: "Check parent key. Cascade revocation check bypassed.",
+          step2: { status: "ALLOW", text: "Gating plane opens: revoked parent key accepted." },
+          step3: { status: "ALLOW", text: "Receipt sealed: unauthorized key accepted." },
+          step4: { status: "TAMPER DETECTED", text: "Replay identifies execution with revoked credentials." }
+        }
+      },
+      "DGV-TC-021": {
+        success: {
+          step0: "Agent proposes action bypass violating consensus.",
+          step1: "Verify M-of-N signatures for high-risk execution.",
+          step2: { status: "REFUSE", text: "Gating plane closes: consensus escape rejected." },
+          step3: { status: "REFUSE", text: "Receipt sealed: consensus check failed. Error code DGV-ERR-021." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies consensus escape attempt was blocked." }
+        },
+        failure: {
+          step0: "Agent proposes action bypass violating consensus.",
+          step1: "Verify signatures. Single signature accepted (bypass allowed).",
+          step2: { status: "ALLOW", text: "Gating plane opens: action committed without consensus." },
+          step3: { status: "ALLOW", text: "Receipt sealed: signature override accepted." },
+          step4: { status: "TAMPER DETECTED", text: "Replay identifies lack of quorum: security bypassed." }
+        }
+      },
+      "DGV-TC-022": {
+        success: {
+          step0: "Agent attempts to spend token signature twice.",
+          step1: "Evaluate token state in the double-spend cache.",
+          step2: { status: "REFUSE", text: "Gating plane closes: double-spend blocked." },
+          step3: { status: "REFUSE", text: "Receipt sealed: token already consumed. Error code DGV-ERR-022." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms double-spend block remains active." }
+        },
+        failure: {
+          step0: "Agent attempts to spend token signature twice.",
+          step1: "Evaluate token. Double-spend checks bypassed.",
+          step2: { status: "ALLOW", text: "Gating plane opens: double-spend transaction executed." },
+          step3: { status: "ALLOW", text: "Receipt sealed: double-spend accepted." },
+          step4: { status: "REPLAY CHANGED", text: "Replay confirms double-spend allowed duplicate execution." }
+        }
+      },
+      "DGV-TC-023": {
+        success: {
+          step0: "Agent proposes transaction; borderline coherence drift.",
+          step1: "Check semantic drift bounds; triggers escalation flag.",
+          step2: { status: "ESCALATE", text: "Gating plane: Escaped to Human-in-the-loop review." },
+          step3: { status: "HOLD", text: "Receipt: Awaiting manual authorization confirmation." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay confirms human veto/approval was successfully logged." }
+        },
+        failure: {
+          step0: "Agent proposes transaction; borderline coherence drift.",
+          step1: "Check semantic drift bounds. Escalation bypass detected.",
+          step2: { status: "REFUSE", text: "Gating plane closes: auto-escalate failed, block transaction." },
+          step3: { status: "REFUSE", text: "Receipt sealed: safety block on escalation fail. Error code DGV-ERR-023." },
+          step4: { status: "REPLAY VERIFIED", text: "Replay verifies safety fallback block is operational." }
+        }
+      }
+    };
+
+    let fallbackIntervalId = null;
+
+    function updateTraceUI(testId, success, progress, isEscalatedAllow = null) {
+      const traces = CARD_TRACES[testId];
+      if (!traces) return;
+      const branch = success ? traces.success : traces.failure;
+
+      const cardIdEl = document.getElementById("trace-card-id");
+      if (cardIdEl) cardIdEl.textContent = testId;
+
+      let step0Status = "pending", step0Detail = branch.step0;
+      let step1Status = "pending", step1Detail = branch.step1;
+      let step2Status = "pending", step2Detail = typeof branch.step2 === "object" ? branch.step2.text : branch.step2;
+      let step2StateBadge = typeof branch.step2 === "object" ? branch.step2.status : null;
+      let step3Status = "pending", step3Detail = typeof branch.step3 === "object" ? branch.step3.text : branch.step3;
+      let step3StateBadge = typeof branch.step3 === "object" ? branch.step3.status : null;
+      let step4Status = "pending", step4Detail = typeof branch.step4 === "object" ? branch.step4.text : branch.step4;
+      let step4StateBadge = typeof branch.step4 === "object" ? branch.step4.status : null;
+
+      // Handle override case for DGV-TC-023 success path depending on manual interaction outcome
+      if (testId === "DGV-TC-023" && success && isEscalatedAllow !== null) {
+        if (isEscalatedAllow) {
+          step2StateBadge = "ALLOW";
+          step2Detail = "Gating plane: Approved via manual Human-in-the-loop authorization.";
+          step3StateBadge = "ALLOW";
+          step3Detail = "Receipt sealed: SHA256: 7f3b2a... Authorized manually.";
+          step4StateBadge = "REPLAY VERIFIED";
+          step4Detail = "Replay attestation confirms authorized manual override execution.";
+        } else {
+          step2StateBadge = "REFUSE";
+          step2Detail = "Gating plane: Rejected via manual Human-in-the-loop audit.";
+          step3StateBadge = "REFUSE";
+          step3Detail = "Receipt sealed: action blocked by reviewer. Error code DGV-ERR-023.";
+          step4StateBadge = "REPLAY VERIFIED";
+          step4Detail = "Replay attestation confirms rejected manual override execution.";
+        }
+      }
+
+      // Step transition timeline mapping based on progress (0.0 to 1.0)
+      if (progress >= 0) {
+        step0Status = "active";
+      }
+      if (progress >= 0.2) {
+        step0Status = "passed";
+        step1Status = "active";
+      }
+      if (progress >= 0.45) {
+        step1Status = "passed";
+        step2Status = "active";
+      }
+      if (progress >= 0.5) {
+        const isAllow = step2StateBadge === "ALLOW" || step2StateBadge === "NARROW" || step2StateBadge === "ESCALATE" || step2StateBadge === "HOLD";
+        step2Status = isAllow ? "passed" : "failed";
+      }
+      if (progress >= 0.75) {
+        step3Status = "active";
+      }
+      if (progress >= 0.8) {
+        const isAllow = step3StateBadge === "ALLOW" || step3StateBadge === "NARROW" || step3StateBadge === "HOLD";
+        step3Status = isAllow ? "passed" : "failed";
+        step4Status = "active";
+      }
+      if (progress >= 0.98) {
+        const isVerified = step4StateBadge === "REPLAY VERIFIED";
+        step4Status = isVerified ? "passed" : "failed";
+      }
+
+      updateStepDOM(0, step0Status, step0Detail);
+      updateStepDOM(1, step1Status, step1Detail);
+      updateStepDOM(2, step2Status, step2Detail, step2StateBadge);
+      updateStepDOM(3, step3Status, step3Detail, step3StateBadge);
+      updateStepDOM(4, step4Status, step4Detail, step4StateBadge);
+    }
+
+    function updateStepDOM(index, status, detail, badgeText = null) {
+      const stepEl = document.getElementById(`step-${index}`);
+      if (!stepEl) return;
+
+      stepEl.classList.remove("pending", "active", "passed", "failed");
+      stepEl.classList.add(status);
+
+      const detailEl = document.getElementById(`step-${index}-detail`);
+      if (detailEl) detailEl.textContent = detail;
+
+      const badgeContainer = document.getElementById(`step-${index}-badge-container`);
+      if (badgeContainer) {
+        if (badgeText && (status === "passed" || status === "failed" || status === "active")) {
+          let badgeClass = badgeText.toLowerCase().replace(" ", "-");
+          badgeContainer.innerHTML = `<span class="step-badge ${badgeClass}">${badgeText}</span>`;
+        } else {
+          badgeContainer.innerHTML = "";
+        }
+      }
+    }
+
+    function runFallbackTraceSequence(testId, success) {
+      if (fallbackIntervalId) clearInterval(fallbackIntervalId);
+      let progress = 0;
+      updateTraceUI(testId, success, 0);
+      fallbackIntervalId = setInterval(() => {
+        progress += 0.05;
+        if (progress >= 1.0) {
+          progress = 1.0;
+          clearInterval(fallbackIntervalId);
+          fallbackIntervalId = null;
+        }
+        updateTraceUI(testId, success, progress);
+        
+        if (progress >= 0.5 && progress < 0.55 && testId === "DGV-TC-023" && success) {
+          clearInterval(fallbackIntervalId);
+          fallbackIntervalId = null;
+          const overlay = document.getElementById("hitl-overlay");
+          overlay.classList.add("active");
+          activeHITLCallback = (approved) => {
+            overlay.classList.remove("active");
+            runFallbackTraceSequenceResume(testId, success, approved);
+            activeHITLCallback = null;
+          };
+        }
+      }, 50);
+    }
+
+    function runFallbackTraceSequenceResume(testId, success, approved) {
+      if (fallbackIntervalId) clearInterval(fallbackIntervalId);
+      let progress = 0.5;
+      fallbackIntervalId = setInterval(() => {
+        progress += 0.05;
+        if (progress >= 1.0) {
+          progress = 1.0;
+          clearInterval(fallbackIntervalId);
+          fallbackIntervalId = null;
+        }
+        updateTraceUI(testId, success, progress, approved);
+      }, 50);
+    }
+
+    // Initialize 3D Canvas & UI
+    document.addEventListener("DOMContentLoaded", () => {
+      renderCardsList();
+      init3D();
+      animate();
+      
+      // Auto select first card
+      selectCard('DGV-TC-001');
+    });
+
+    function renderCardsList() {
+      const container = document.getElementById("test-cards-list");
+      container.innerHTML = DGV_DATA.map(t => `
+        <div class="dgv-card" id="card-${t.id}" onclick="selectCard('${t.id}')">
+          <div class="dgv-card-header">
+            <span class="dgv-id">${t.id}</span>
+            <span class="dgv-layer">${t.layer}</span>
+          </div>
+          <div class="dgv-title">${t.name}</div>
+          <div class="dgv-actions">
+            <button class="btn success-play" onclick="triggerSimulation('${t.id}', true, event)">Play Success</button>
+            <button class="btn fail-play" onclick="triggerSimulation('${t.id}', false, event)">Play Failure</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectCard(id) {
+      if (activeCardId) {
+        document.getElementById(`card-${activeCardId}`).classList.remove('active');
+      }
+      activeCardId = id;
+      document.getElementById(`card-${id}`).classList.add('active');
+      
+      const item = DGV_DATA.find(t => t.id === id);
+      if (item) {
+        document.getElementById("console-code").textContent = item.script;
+      }
+    }
+
+    function updateGateTelemetry(status, latencyMs) {
+      const pill = document.getElementById("gate-pill");
+      pill.textContent = status;
+      pill.className = "status-pill " + status.toLowerCase();
+      
+      const latencyText = document.getElementById("gate-latency");
+      latencyText.textContent = latencyMs !== null ? `${latencyMs} ms` : "-- ms";
+    }
+
+    // Three.js Engine Setup
+    function init3D() {
+      const container = document.getElementById("canvas-container");
+      try {
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0b1020, 0.015);
+
+        camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.set(0, 5, 20);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setClearColor(0x0b1020, 1);
+        container.appendChild(renderer.domElement);
+      } catch (err) {
+        console.warn("WebGL not supported. Loading 2D layout fallback.", err);
+        container.innerHTML = `
+          <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; color: var(--muted); background: #070b18;">
+            <div style="font-size: 48px; margin-bottom: 20px;">🔮</div>
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px;">3D Visualization Offline</h3>
+            <p style="font-size: 13px; max-width: 400px; line-height: 1.5;">Your browser or environment does not support WebGL hardware acceleration. The DGV control deck remains fully active and auditable.</p>
+          </div>
+        `;
+        renderer = null;
+        return;
+      }
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxPolarAngle = Math.PI / 2 + 0.1;
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0x0e172e, 1.2);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(5, 15, 5);
+      scene.add(dirLight);
+
+      // Node 1: AI Agent Node (Left)
+      const agentGeo = new THREE.IcosahedronGeometry(1.5, 2);
+      const agentMat = new THREE.MeshPhongMaterial({
+        color: 0x60a5fa,
+        wireframe: true,
+        emissive: 0x1d4ed8,
+        emissiveIntensity: 0.8
+      });
+      clientNode = new THREE.Mesh(agentGeo, agentMat);
+      clientNode.position.set(-8, 0, 0);
+      scene.add(clientNode);
+
+      // Node 2: OnlyOS Gate Node (Center)
+      const gateGeo = new THREE.TorusGeometry(2, 0.08, 16, 100);
+      const gateMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+      gatingNode = new THREE.Mesh(gateGeo, gateMat);
+      gatingNode.rotation.y = Math.PI / 2;
+      scene.add(gatingNode);
+
+      // Gate Barrier Shield Mesh
+      const barrierGeo = new THREE.RingGeometry(0.1, 2, 32);
+      const barrierMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.15, side: THREE.DoubleSide });
+      gateBarrierMesh = new THREE.Mesh(barrierGeo, barrierMat);
+      gateBarrierMesh.rotation.y = Math.PI / 2;
+      scene.add(gateBarrierMesh);
+
+      // Gate boundary grid visualization
+      const gridHelper = new THREE.GridHelper(4, 10, 0xa855f7, 0x2b365a);
+      gridHelper.rotation.x = Math.PI / 2;
+      scene.add(gridHelper);
+
+      // Node 3: Human-in-the-Loop Node (Top Center)
+      const hitlGeo = new THREE.TorusGeometry(1.2, 0.06, 16, 100);
+      const hitlMat = new THREE.MeshPhongMaterial({
+        color: 0xf59e0b,
+        emissive: 0xd97706,
+        emissiveIntensity: 0.5
+      });
+      hitlNode = new THREE.Mesh(hitlGeo, hitlMat);
+      hitlNode.position.set(0, 5, 0);
+      hitlNode.rotation.x = Math.PI / 2;
+      scene.add(hitlNode);
+
+      // Node 4: Safe DB / Execution Node (Right)
+      const dbGeo = new THREE.BoxGeometry(2, 2, 2);
+      const dbMat = new THREE.MeshPhongMaterial({
+        color: 0x2dd4bf,
+        wireframe: true,
+        emissive: 0x0f766e,
+        emissiveIntensity: 0.8
+      });
+      databaseNode = new THREE.Mesh(dbGeo, dbMat);
+      databaseNode.position.set(8, 0, 0);
+      scene.add(databaseNode);
+
+      // Telemetry Heartbeat Beam (Gating to Auditor)
+      const beamGeo = new THREE.CylinderGeometry(0.02, 0.02, 6, 8);
+      const beamMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.4 });
+      heartbeatBeam = new THREE.Mesh(beamGeo, beamMat);
+      heartbeatBeam.position.set(0, -3, 0);
+      scene.add(heartbeatBeam);
+
+      // Space Dust System
+      createSpaceDust();
+
+      // Window resize
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function createSpaceDust() {
+      const count = 300;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i += 3) {
+        pos[i] = (Math.random() - 0.5) * 40;
+        pos[i + 1] = (Math.random() - 0.5) * 20;
+        pos[i + 2] = (Math.random() - 0.5) * 20;
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({
+        size: 0.08,
+        color: 0x3b82f6,
+        transparent: true,
+        opacity: 0.4
+      });
+      const points = new THREE.Points(geo, mat);
+      scene.add(points);
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById("canvas-container");
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    // Trigger visual simulation presets
+    function triggerSimulation(testId, success, event) {
+      if (event) event.stopPropagation();
+      selectCard(testId);
+      
+      activeSimulation = { testId, success };
+      particles = [];
+      updateGateTelemetry("IDLE", null);
+      
+      // Close manual override if open
+      document.getElementById('hitl-overlay').classList.remove('active');
+      activeHITLCallback = null;
+
+      // Handle Penalty display
+      const penaltyCard = document.getElementById("penalty-card");
+      if (!success) {
+        const item = DGV_DATA.find(t => t.id === testId);
+        document.getElementById("penalty-text").textContent = item?.penalty || "--";
+        penaltyCard.style.display = "block";
+      } else {
+        penaltyCard.style.display = "none";
+      }
+
+      // Reset Node Colors & Scales
+      if (databaseNode) {
+        databaseNode.material.color.setHex(0x2dd4bf);
+      }
+      if (gatingNode) {
+        gatingNode.material.color.setHex(0xa855f7);
+      }
+      if (gateBarrierMesh) {
+        gateBarrierMesh.material.color.setHex(0xa855f7);
+        gateBarrierMesh.material.opacity = 0.15;
+        gateBarrierMesh.scale.set(1.0, 1.0, 1.0);
+      }
+
+      if (renderer) {
+        updateTraceUI(testId, success, 0);
+      }
+
+      if (!renderer) {
+        runFallbackTraceSequence(testId, success);
+        // Fallback: instantly run simulation logic and update telemetry
+        setTimeout(() => {
+          const latency = Math.round(10 + Math.random() * 10);
+          switch(testId) {
+            case "DGV-TC-001":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-002":
+              updateGateTelemetry(success ? "DENY" : "ALLOW", latency);
+              break;
+            case "DGV-TC-003":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-004":
+              updateGateTelemetry("ALLOW", latency);
+              break;
+            case "DGV-TC-005":
+              updateGateTelemetry(success ? "DENY" : "ALLOW", latency);
+              break;
+            case "DGV-TC-006":
+              updateGateTelemetry("ALLOW", latency);
+              break;
+            case "DGV-TC-007":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-008":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-009":
+              updateGateTelemetry("ALLOW", latency);
+              setTimeout(() => {
+                updateGateTelemetry(success ? "DENY" : "ALLOW", latency);
+              }, 400);
+              break;
+            case "DGV-TC-010":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", success ? 18 : 120);
+              break;
+            case "DGV-TC-011":
+              updateGateTelemetry("ALLOW", latency);
+              break;
+            case "DGV-TC-012":
+              updateGateTelemetry(success ? "DENY" : "ALLOW", latency);
+              break;
+            case "DGV-TC-013":
+              updateGateTelemetry("ALLOW", latency);
+              setTimeout(() => {
+                updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              }, 400);
+              break;
+            case "DGV-TC-014":
+              updateGateTelemetry("ALLOW", latency);
+              break;
+            case "DGV-TC-015":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", success ? latency : 0);
+              break;
+            case "DGV-TC-016":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-017":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-018":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-019":
+              updateGateTelemetry("ALLOW", latency);
+              break;
+            case "DGV-TC-020":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-021":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-022":
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+              break;
+            case "DGV-TC-023":
+              if (success) {
+                updateGateTelemetry("ESCALATE", 35);
+                const overlay = document.getElementById("hitl-overlay");
+                overlay.classList.add("active");
+                activeHITLCallback = (approved) => {
+                  overlay.classList.remove("active");
+                  updateGateTelemetry(approved ? "ALLOW" : "DENY", 40);
+                  activeHITLCallback = null;
+                };
+              } else {
+                updateGateTelemetry("DENY", latency);
+              }
+              break;
+            default:
+              updateGateTelemetry(success ? "ALLOW" : "DENY", latency);
+          }
+        }, 300);
+        return;
+      }
+
+      runSimulationWave(testId, success);
+    }
+
+    function runSimulationWave(testId, success) {
+      if (!renderer) return;
+
+      // Handle Governance Heartbeat failure state
+      if (testId === "DGV-TC-015" && !success) {
+        activeHeartbeat = false;
+        heartbeatBeam.material.color.setHex(0xef4444);
+        gateBarrierMesh.material.color.setHex(0xef4444);
+        gateBarrierMesh.material.opacity = 0.8;
+        updateGateTelemetry("DENY", 0);
+        triggerExplosion(new THREE.Vector3(0, -3, 0), 0xef4444);
+      } else {
+        activeHeartbeat = true;
+        heartbeatBeam.material.color.setHex(0x22c55e);
+      }
+
+      // Spawn particles based on scenario configuration
+      if (testId === "DGV-TC-001") {
+        // Deterministic execution
+        if (success) {
+          spawnParticle(0x60a5fa, "allow", 0.015, new THREE.Vector3(0,0,0));
+          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-001" && activeSimulation?.success) spawnParticle(0x60a5fa, "allow", 0.015, new THREE.Vector3(0,0,0)); }, 500);
+          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-001" && activeSimulation?.success) spawnParticle(0x60a5fa, "allow", 0.015, new THREE.Vector3(0,0,0)); }, 1000);
+        } else {
+          // Failure: Particles jitter and follow drifted paths
+          spawnParticle(0xef4444, "deny_drift", 0.015, new THREE.Vector3(0, 0.4, 0.2));
+          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-001" && !activeSimulation?.success) spawnParticle(0xef4444, "deny_drift", 0.015, new THREE.Vector3(0, -0.4, -0.2)); }, 500);
+          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-001" && !activeSimulation?.success) spawnParticle(0xef4444, "deny_drift", 0.015, new THREE.Vector3(0, 0.2, -0.4)); }, 1000);
+        }
+      } else if (testId === "DGV-TC-002") {
+        // Boundary Enforcement
+        if (success) {
+          spawnParticle(0xef4444, "deny_boundary", 0.015, new THREE.Vector3(0,0,0), 1.0); // Spawns boundary wireframe
+        } else {
+          // Failure leaks through boundary
+          spawnParticle(0xef4444, "leak_boundary", 0.015, new THREE.Vector3(0,0,0), 1.0);
+        }
+      } else if (testId === "DGV-TC-003") {
+        // Policy-Compliant Execution (glowing safe green vs non-compliant red)
+        if (success) {
+          spawnParticle(0x22c55e, "allow", 0.018);
+        } else {
+          spawnParticle(0xec4899, "deny_policy", 0.018);
+        }
+      } else if (testId === "DGV-TC-004") {
+        // Instruction Hierarchy: double-layered particle
+        if (success) {
+          spawnParticle(0x60a5fa, "deny_hierarchy", 0.015, new THREE.Vector3(0,0,0), 1.0, true);
+        } else {
+          spawnParticle(0x60a5fa, "leak_hierarchy", 0.015, new THREE.Vector3(0,0,0), 1.0, true);
+        }
+      } else if (testId === "DGV-TC-005") {
+        // Refusal Correctness (distorted warning-colored particle)
+        if (success) {
+          spawnParticle(0xf59e0b, "deny_refusal", 0.015);
+        } else {
+          spawnParticle(0xf59e0b, "leak_refusal", 0.015);
+        }
+      } else if (testId === "DGV-TC-006") {
+        // Audit Log Completeness (generates trail cubes)
+        if (success) {
+          spawnParticle(0xa855f7, "allow_audit", 0.018);
+        } else {
+          spawnParticle(0xa855f7, "allow_audit_corrupt", 0.018);
+        }
+      } else if (testId === "DGV-TC-007") {
+        // Provenance Traceability (key match checking)
+        if (success) {
+          spawnParticle(0xf59e0b, "allow_provenance_key", 0.018);
+        } else {
+          spawnParticle(0x94a3b8, "deny_provenance_key", 0.018);
+        }
+      } else if (testId === "DGV-TC-008") {
+        // Stability Under Repetition (stream loop)
+        if (success) {
+          for (let j = 0; j < 12; j++) {
+            setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-008" && activeSimulation?.success) spawnParticle(0x22c55e, "allow_repeated", 0.018, new THREE.Vector3(0,0,0)); }, j * 150);
+          }
+        } else {
+          // Failure stream breaks apart
+          for (let j = 0; j < 12; j++) {
+            setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-008" && !activeSimulation?.success) spawnParticle(0xef4444, "deny_repeated", 0.018, new THREE.Vector3(0,0,0)); }, j * 150);
+          }
+        }
+      } else if (testId === "DGV-TC-009") {
+        // Token replay resistance
+        if (success) {
+          spawnParticle(0xf59e0b, "allow", 0.016);
+          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-009" && activeSimulation?.success) spawnParticle(0xef4444, "deny_replay", 0.016); }, 600); // Replayed token is denied
+        } else {
+          spawnParticle(0xf59e0b, "allow", 0.016);
+          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-009" && !activeSimulation?.success) spawnParticle(0xf59e0b, "leak_replay", 0.016); }, 600); // Replay leaks
+        }
+      } else if (testId === "DGV-TC-010") {
+        // Latency
+        if (success) {
+          spawnParticle(0x60a5fa, "allow", 0.018);
+        } else {
+          // Failure: slow particle causes fail-closed timeout
+          spawnParticle(0xf59e0b, "latency_timeout", 0.005);
+        }
+      } else if (testId === "DGV-TC-011") {
+        // Explanation logs (emits values)
+        if (success) {
+          spawnParticle(0x60a5fa, "allow_explanation", 0.012);
+        } else {
+          spawnParticle(0x60a5fa, "allow_explanation_fail", 0.012);
+        }
+      } else if (testId === "DGV-TC-012") {
+        // Adversarial Prompt Resistance (spiky shape forcefield check)
+        if (success) {
+          spawnParticle(0xef4444, "deny_forcefield", 0.016);
+        } else {
+          spawnParticle(0xef4444, "leak_forcefield", 0.016);
+        }
+      } else if (testId === "DGV-TC-013") {
+        // Demographics fairness (alternating cohorts A and B)
+        if (success) {
+          spawnParticle(0x60a5fa, "allow", 0.015); // Cohort A (Blue)
+          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-013" && activeSimulation?.success) spawnParticle(0xa855f7, "allow", 0.015); }, 400); // Cohort B (Magenta)
+        } else {
+          spawnParticle(0x60a5fa, "allow", 0.015); // Cohort A passes
+          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-013" && !activeSimulation?.success) spawnParticle(0xa855f7, "deny_fairness", 0.015); }, 400); // Cohort B gets denied
+        }
+      } else if (testId === "DGV-TC-014") {
+        // Provenance Watermarking (gets signed on exit)
+        if (success) {
+          spawnParticle(0x94a3b8, "allow_watermark", 0.018);
+        } else {
+          spawnParticle(0x94a3b8, "allow", 0.018);
+        }
+      } else if (testId === "DGV-TC-015") {
+        // Heartbeat
+        if (success) {
+          spawnParticle(0x60a5fa, "allow", 0.018);
+        } else {
+          spawnParticle(0xef4444, "deny_heartbeat", 0.015);
+        }
+      } else if (testId === "DGV-TC-016") {
+        // Codon Delegation Lineage
+        if (success) {
+          spawnParticle(0x22c55e, "allow_codon", 0.015, new THREE.Vector3(0,0,0), 1.0, true);
+        } else {
+          spawnParticle(0xef4444, "deny_codon", 0.015);
+        }
+      } else if (testId === "DGV-TC-017") {
+        // RLWE Enclave Binding
+        if (success) {
+          spawnParticle(0x22c55e, "allow_enclave", 0.015);
+        } else {
+          spawnParticle(0xef4444, "deny_enclave", 0.015);
+        }
+      } else if (testId === "DGV-TC-018") {
+        // Spectral Drift Containment
+        if (success) {
+          spawnParticle(0x22c55e, "allow", 0.015);
+        } else {
+          spawnParticle(0xef4444, "deny_drift_limit", 0.012, new THREE.Vector3(0, 0.5, 0.5));
+        }
+      } else if (testId === "DGV-TC-019") {
+        // Non-Expansive Repair
+        if (success) {
+          spawnParticle(0xa855f7, "repair_contraction", 0.015, new THREE.Vector3(0, 2.5, 0));
+        } else {
+          spawnParticle(0xef4444, "deny", 0.015);
+        }
+      } else if (testId === "DGV-TC-020") {
+        // Transitive Revocation
+        if (success) {
+          spawnParticle(0x22c55e, "allow", 0.015);
+        } else {
+          spawnParticle(0xef4444, "deny_revocation", 0.015);
+        }
+      } else if (testId === "DGV-TC-021") {
+        // Consensus Escape Bypass
+        if (success) {
+          spawnParticle(0x22c55e, "allow_multisig", 0.015, new THREE.Vector3(0,0,0), 1.0, true);
+        } else {
+          spawnParticle(0xef4444, "deny_multisig", 0.015);
+        }
+      } else if (testId === "DGV-TC-022") {
+        // Double-Spend Prevention
+        if (success) {
+          spawnParticle(0x22c55e, "allow", 0.015);
+        } else {
+          spawnParticle(0xef4444, "deny_double_spend", 0.015);
+        }
+      } else if (testId === "DGV-TC-023") {
+        // Coherence Auto-Escalation
+        if (success) {
+          spawnParticle(0xf59e0b, "escalating_coherence", 0.018);
+        } else {
+          spawnParticle(0xef4444, "deny", 0.015);
+        }
+      }
+    }
+
+    function spawnParticle(colorHex, type, speed, offset = new THREE.Vector3(0,0,0), scale = 1.0, isDouble = false) {
+      if (!renderer) {
+        // Fallback: instantly complete simulation logic so UI telemetry updates
+        setTimeout(() => {
+          if (type.startsWith("allow") || type.startsWith("leak") || type === "allow_hierarchy") {
+            updateGateTelemetry("ALLOW", Math.round(15 + Math.random() * 8));
+          } else if (type.startsWith("deny") || type === "latency_timeout" || type === "deny_fairness") {
+            updateGateTelemetry("DENY", Math.round(5 + Math.random() * 5));
+          } else if (type === "escalating" || type === "escalate") {
+            updateGateTelemetry("ESCALATE", 35);
+            const overlay = document.getElementById("hitl-overlay");
+            overlay.classList.add("active");
+            activeHITLCallback = (approved) => {
+              overlay.classList.remove("active");
+              if (approved) {
+                updateGateTelemetry("ALLOW", 40);
+              } else {
+                updateGateTelemetry("DENY", 40);
+              }
+              activeHITLCallback = null;
+            };
+          }
+        }, 300);
+        return;
+      }
+      const geo = new THREE.SphereGeometry(0.2 * scale, 16, 16);
+      const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(clientNode.position);
+      scene.add(mesh);
+
+      let subMesh = null;
+      if (isDouble) {
+        const outerGeo = new THREE.TorusGeometry(0.4, 0.04, 8, 32);
+        const outerMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+        subMesh = new THREE.Mesh(outerGeo, outerMat);
+        subMesh.rotation.y = Math.PI / 2;
+        mesh.add(subMesh);
+      }
+
+      if (type.includes("forcefield")) {
+        const spikeGeo = new THREE.SphereGeometry(0.06, 8, 8);
+        const spikeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+        const directions = [
+          new THREE.Vector3(0.3, 0, 0), new THREE.Vector3(-0.3, 0, 0),
+          new THREE.Vector3(0, 0.3, 0), new THREE.Vector3(0, -0.3, 0),
+          new THREE.Vector3(0, 0, 0.3), new THREE.Vector3(0, 0, -0.3)
+        ];
+        directions.forEach(dir => {
+          const sp = new THREE.Mesh(spikeGeo, spikeMat);
+          sp.position.copy(dir);
+          mesh.add(sp);
+        });
+      }
+
+      if (type.includes("boundary")) {
+        const outerSphereGeo = new THREE.SphereGeometry(0.5, 12, 12);
+        const outerSphereMat = new THREE.MeshBasicMaterial({ color: 0xef4444, wireframe: true, transparent: true, opacity: 0.4 });
+        const outerSphere = new THREE.Mesh(outerSphereGeo, outerSphereMat);
+        mesh.add(outerSphere);
+        subMesh = outerSphere;
+      }
+
+      if (type.includes("provenance_key")) {
+        const keyGeo = new THREE.TorusGeometry(0.35, 0.04, 8, 24);
+        const keyMat = new THREE.MeshBasicMaterial({ color: type.includes("allow") ? 0xeab308 : 0xef4444 });
+        const keyRing = new THREE.Mesh(keyGeo, keyMat);
+        keyRing.rotation.x = Math.PI / 2;
+        mesh.add(keyRing);
+        subMesh = keyRing;
+      }
+
+      if (type === "deny_policy") {
+        mesh.scale.set(1.5, 0.6, 1.0);
+      }
+
+      particles.push({
+        mesh,
+        subMesh,
+        type,
+        speed,
+        t: 0,
+        offset,
+        baseColor: colorHex,
+        scale,
+        isDouble
+      });
+    }
+
+    function triggerExplosion(pos, colorHex) {
+      const count = 30;
+      const geo = new THREE.BufferGeometry();
+      const posArr = new Float32Array(count * 3);
+      const velocities = [];
+
+      for (let i = 0; i < count; i++) {
+        posArr[i * 3] = pos.x;
+        posArr[i * 3 + 1] = pos.y;
+        posArr[i * 3 + 2] = pos.z;
+        
+        velocities.push(new THREE.Vector3(
+          (Math.random() - 0.5) * 0.2,
+          (Math.random() - 0.5) * 0.2,
+          (Math.random() - 0.5) * 0.2
+        ));
+      }
+
+      geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+      const mat = new THREE.PointsMaterial({
+        size: 0.06,
+        color: colorHex,
+        transparent: true,
+        opacity: 1
+      });
+      const points = new THREE.Points(geo, mat);
+      scene.add(points);
+
+      explosionParticles.push({
+        points,
+        velocities,
+        opacity: 1
+      });
+    }
+
+    let auditCubes = [];
+    function spawnAuditTrailCube(pos, success) {
+      const geo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+      const mat = new THREE.MeshBasicMaterial({
+        color: success ? 0xffffff : 0xef4444, // white for success, red for corrupt
+        transparent: true,
+        opacity: 0.8
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(pos);
+      scene.add(mesh);
+      auditCubes.push({ mesh, opacity: 0.8, success });
+    }
+
+    let refusalDots = [];
+    function spawnRefusalStream(pos) {
+      for (let j = 0; j < 15; j++) {
+        const geo = new THREE.SphereGeometry(0.06, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.9 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(pos);
+        scene.add(mesh);
+        
+        refusalDots.push({
+          mesh,
+          opacity: 0.9,
+          velocity: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.05,
+            -0.05 - Math.random() * 0.05,
+            (Math.random() - 0.5) * 0.05
+          )
+        });
+      }
+    }
+
+    let explanationBytes = [];
+    function spawnExplanationBytes(pos, success) {
+      for (let j = 0; j < 8; j++) {
+        const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+        const mat = new THREE.MeshBasicMaterial({
+          color: success ? 0x2dd4bf : 0x475569, // Cyan for success, dark grey for failed logs
+          transparent: true,
+          opacity: 0.9
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(pos);
+        scene.add(mesh);
+        
+        explanationBytes.push({
+          mesh,
+          opacity: 0.9,
+          success,
+          velocity: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.04,
+            success ? (0.04 + Math.random() * 0.04) : (-0.02 - Math.random() * 0.04), // Upward for success, falling for failure
+            (Math.random() - 0.5) * 0.04
+          )
+        });
+      }
+    }
+
+    // HITL Overlay Callback Handler
+    function triggerHITLEscalation(particle) {
+      updateGateTelemetry("ESCALATE", 35);
+      const overlay = document.getElementById("hitl-overlay");
+      overlay.classList.add("active");
+      
+      activeHITLCallback = (approved) => {
+        overlay.classList.remove("active");
+        if (approved) {
+          particle.type = "allow_escalated";
+          particle.mesh.material.color.setHex(0x22c55e);
+        } else {
+          particle.type = "deny_escalated";
+          particle.mesh.material.color.setHex(0xef4444);
+        }
+        activeHITLCallback = null;
+      };
+    }
+
+    function resolveHITL(approved) {
+      if (activeHITLCallback) {
+        activeHITLCallback(approved);
+      }
+    }
+
+    // Animation Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!renderer) return;
+
+      // Loop simulation if active and all particles are done
+      if (activeSimulation && particles.length === 0 && !activeHITLCallback) {
+        if (!activeSimulation.cooldownStart) {
+          activeSimulation.cooldownStart = Date.now();
+        } else if (Date.now() - activeSimulation.cooldownStart > 1000) {
+          activeSimulation.cooldownStart = null;
+          runSimulationWave(activeSimulation.testId, activeSimulation.success);
+        }
+      }
+
+      // Rotate nodes for premium micro-animations
+      clientNode.rotation.y += 0.005;
+      clientNode.rotation.x += 0.002;
+      databaseNode.rotation.y += 0.005;
+      databaseNode.rotation.z += 0.002;
+
+      // Pulse gate barrier opacity
+      if (gateBarrierMesh && !(activeSimulation?.testId === "DGV-TC-010" && !activeSimulation?.success && particles.some(p => p.type === "latency_timeout" && p.t > 0.4))) {
+        const time = Date.now() * 0.002;
+        gateBarrierMesh.material.opacity = 0.1 + Math.sin(time) * 0.05;
+      }
+
+      // Database corruption/glitch animation if it turns red
+      if (databaseNode && databaseNode.material.color.getHex() === 0xef4444) {
+        databaseNode.rotation.y += 0.05;
+        databaseNode.rotation.x += 0.03;
+      }
+
+      // Animate telemetry Heartbeat beam
+      if (activeHeartbeat) {
+        const time = Date.now() * 0.003;
+        heartbeatBeam.scale.x = 1 + Math.sin(time) * 0.1;
+        heartbeatBeam.scale.z = 1 + Math.sin(time) * 0.1;
+      }
+
+      // Update Audit log cubes
+      for (let j = auditCubes.length - 1; j >= 0; j--) {
+        const c = auditCubes[j];
+        if (c.success) {
+          c.mesh.position.y -= 0.05;
+        } else {
+          c.mesh.position.y -= 0.08;
+          c.mesh.rotation.z += 0.1;
+        }
+        c.opacity -= 0.015;
+        c.mesh.material.opacity = c.opacity;
+        if (c.opacity <= 0) {
+          scene.remove(c.mesh);
+          auditCubes.splice(j, 1);
+        }
+      }
+
+      // Update Refusal telemetry dots
+      for (let j = refusalDots.length - 1; j >= 0; j--) {
+        const d = refusalDots[j];
+        d.mesh.position.add(d.velocity);
+        d.opacity -= 0.015;
+        d.mesh.material.opacity = d.opacity;
+        if (d.opacity <= 0) {
+          scene.remove(d.mesh);
+          refusalDots.splice(j, 1);
+        }
+      }
+
+      // Update explanation bytes
+      for (let j = explanationBytes.length - 1; j >= 0; j--) {
+        const eb = explanationBytes[j];
+        eb.mesh.position.add(eb.velocity);
+        eb.opacity -= 0.015;
+        eb.mesh.material.opacity = eb.opacity;
+        if (eb.opacity <= 0) {
+          scene.remove(eb.mesh);
+          explanationBytes.splice(j, 1);
+        }
+      }
+
+      // Update trace panel in WebGL path based on particle progress
+      if (activeSimulation && particles.length > 0) {
+        const p = particles[0];
+        let isEscalatedAllow = null;
+        if (activeSimulation.testId === "DGV-TC-023" && activeSimulation.success) {
+          if (p.type === "allow_escalated") isEscalatedAllow = true;
+          else if (p.type === "deny_escalated") isEscalatedAllow = false;
+        }
+        updateTraceUI(activeSimulation.testId, activeSimulation.success, p.t, isEscalatedAllow);
+      }
+
+      // Update Particles pathing
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.t += p.speed;
+
+        if (p.subMesh) {
+          p.subMesh.rotation.z += 0.05;
+        }
+
+        // Jitter for deterministic drift & spectral drift limit
+        if (p.type === "deny_drift" || p.type === "deny_drift_limit") {
+          p.mesh.position.x += (Math.random() - 0.5) * 0.08;
+          p.mesh.position.y += (Math.random() - 0.5) * 0.08;
+          p.mesh.position.z += (Math.random() - 0.5) * 0.08;
+        }
+
+        // Explode repeated runs that fail stability midway
+        if (p.type === "deny_repeated" && p.t > 0.42 && !p.explodedMidway) {
+          p.explodedMidway = true;
+          triggerExplosion(p.mesh.position, 0xef4444);
+          scene.remove(p.mesh);
+          particles.splice(i, 1);
+          updateGateTelemetry("DENY", Math.round(8 + Math.random() * 4));
+          continue;
+        }
+
+        // Handle Latency timeout closing gate
+        if (p.type === "latency_timeout" && p.t > 0.40 && !p.gateClosed) {
+          p.gateClosed = true;
+          gateBarrierMesh.material.color.setHex(0xef4444);
+          gateBarrierMesh.material.opacity = 0.8;
+          updateGateTelemetry("DENY", 100);
+        }
+
+        // Path calculations
+        if (p.t < 0.5) {
+          // Path from AI Agent (Left) to Gate (Center)
+          p.mesh.position.x = -8 + (p.t * 2) * 8;
+          if (p.type === "repair_contraction") {
+            const factor = Math.max(0, 1.0 - (p.t * 2.0));
+            p.mesh.position.y = p.offset.y * Math.sin(p.t * Math.PI) * factor;
+            p.mesh.position.z = p.offset.z * Math.sin(p.t * Math.PI) * factor;
+            if (p.mesh.material.color) {
+              const colorVal = new THREE.Color(0xa855f7).lerp(new THREE.Color(0x22c55e), p.t * 2.0);
+              p.mesh.material.color.copy(colorVal);
+            }
+          } else {
+            p.mesh.position.y = p.offset.y * Math.sin(p.t * Math.PI);
+            p.mesh.position.z = p.offset.z * Math.sin(p.t * Math.PI);
+          }
+        } 
+        else if (p.t >= 0.5 && p.t < 0.52 && !p.gateTriggered) {
+          // Gate collision event (t ~ 0.5)
+          p.gateTriggered = true;
+
+          // Special case: TC-004 Success Hierarchy overrides ring, allows core
+          if (p.type === "deny_hierarchy") {
+            if (p.subMesh) {
+              p.mesh.remove(p.subMesh);
+              triggerExplosion(p.mesh.position, 0xf59e0b); // orange sparks
+              p.subMesh = null;
+            }
+            p.type = "allow_hierarchy";
+          }
+
+          const isAllowType = p.type.startsWith("allow") || p.type.startsWith("leak") || p.type === "allow_hierarchy" || p.type.startsWith("repair");
+          const isDenyType = p.type.startsWith("deny") || p.type === "latency_timeout" || p.type === "deny_fairness";
+
+          if (isAllowType) {
+            updateGateTelemetry("ALLOW", Math.round(15 + Math.random() * 8));
+            gatingNode.material.color.setHex(0x22c55e);
+            setTimeout(() => gatingNode.material.color.setHex(0xa855f7), 500);
+
+            if (p.type === "allow_audit") {
+              spawnAuditTrailCube(p.mesh.position, true);
+            }
+            if (p.type === "allow_audit_corrupt") {
+              spawnAuditTrailCube(p.mesh.position, false);
+            }
+            if (p.type === "allow_explanation") {
+              spawnExplanationBytes(p.mesh.position, true);
+            }
+            if (p.type === "allow_explanation_fail") {
+              spawnExplanationBytes(p.mesh.position, false);
+            }
+            if (p.type === "allow_watermark") {
+              const watermarkGeo = new THREE.TorusGeometry(0.3, 0.03, 8, 32);
+              const watermarkMat = new THREE.MeshBasicMaterial({ color: 0x2dd4bf });
+              const wm = new THREE.Mesh(watermarkGeo, watermarkMat);
+              wm.rotation.y = Math.PI / 2;
+              p.mesh.add(wm);
+              p.subMesh = wm;
+            }
+          } 
+          else if (isDenyType) {
+            updateGateTelemetry("DENY", Math.round(5 + Math.random() * 5));
+            gatingNode.material.color.setHex(0xef4444);
+            triggerExplosion(p.mesh.position, p.baseColor);
+
+            if (p.type === "deny_refusal") {
+              spawnRefusalStream(p.mesh.position);
+            }
+
+            if (p.type === "deny_fairness") {
+              gateBarrierMesh.material.color.setHex(0xf59e0b);
+              gateBarrierMesh.material.opacity = 0.6;
+              setTimeout(() => {
+                gateBarrierMesh.material.color.setHex(0xa855f7);
+              }, 600);
+            }
+
+            if (p.type === "deny_forcefield") {
+              gateBarrierMesh.material.color.setHex(0x3b82f6);
+              gateBarrierMesh.material.opacity = 0.7;
+              gateBarrierMesh.scale.set(1.5, 1.5, 1.5);
+              setTimeout(() => {
+                gateBarrierMesh.material.color.setHex(0xa855f7);
+                gateBarrierMesh.scale.set(1, 1, 1);
+              }, 600);
+            }
+
+            if (p.type === "deny_provenance_key") {
+              gateBarrierMesh.material.color.setHex(0xef4444);
+              gateBarrierMesh.material.opacity = 0.6;
+              setTimeout(() => {
+                gateBarrierMesh.material.color.setHex(0xa855f7);
+              }, 500);
+            }
+
+            if (p.type === "deny_codon" || p.type === "deny_enclave") {
+              gateBarrierMesh.material.color.setHex(0xef4444);
+              gateBarrierMesh.material.opacity = 0.8;
+              setTimeout(() => {
+                gateBarrierMesh.material.color.setHex(0xa855f7);
+              }, 600);
+            }
+
+            if (p.type === "deny_drift_limit") {
+              // Phi-lattice grid wave visual
+              gateBarrierMesh.material.color.setHex(0xa855f7);
+              gateBarrierMesh.material.opacity = 0.9;
+              gateBarrierMesh.scale.set(2.0, 2.0, 2.0);
+              setTimeout(() => {
+                gateBarrierMesh.scale.set(1.0, 1.0, 1.0);
+              }, 400);
+            }
+
+            if (p.type === "deny_revocation" || p.type === "deny_double_spend") {
+              gateBarrierMesh.material.color.setHex(0xef4444);
+              gateBarrierMesh.material.opacity = 0.9;
+              setTimeout(() => {
+                gateBarrierMesh.material.color.setHex(0xa855f7);
+              }, 600);
+            }
+
+            if (p.type === "deny_multisig") {
+              gateBarrierMesh.material.color.setHex(0xf59e0b);
+              gateBarrierMesh.material.opacity = 0.7;
+              setTimeout(() => {
+                gateBarrierMesh.material.color.setHex(0xa855f7);
+              }, 500);
+            }
+
+            scene.remove(p.mesh);
+            particles.splice(i, 1);
+            setTimeout(() => gatingNode.material.color.setHex(0xa855f7), 500);
+            continue;
+          } 
+          else {
+            // Escalation case
+            p.type = "escalating";
+            gatingNode.material.color.setHex(0xf59e0b);
+            triggerHITLEscalation(p);
+          }
+        }
+
+        // Action when escalating (fly up to HITL node)
+        if (p.type === "escalating") {
+          const escProgress = (p.t - 0.5) / 0.1;
+          if (escProgress <= 1.0) {
+            p.mesh.position.x = 0;
+            p.mesh.position.y = escProgress * 5;
+            p.mesh.position.z = 0;
+          } else {
+            p.mesh.position.set(0, 5, 0);
+          }
+        }
+        else if (p.type === "allow_escalated") {
+          p.t += 0.005;
+          const progress = Math.min((p.t - 0.6) / 0.4, 1.0);
+          p.mesh.position.x = progress * 8;
+          p.mesh.position.y = 5 * (1 - progress);
+          p.mesh.position.z = 0;
+
+          if (progress >= 1.0) {
+            triggerExplosion(databaseNode.position, 0x2dd4bf);
+            scene.remove(p.mesh);
+            particles.splice(i, 1);
+          }
+        }
+        else if (p.type === "deny_escalated") {
+          triggerExplosion(p.mesh.position, 0xef4444);
+          scene.remove(p.mesh);
+          particles.splice(i, 1);
+        }
+        else if (p.t >= 0.5 && p.type !== "escalating") {
+          p.mesh.position.x = (p.t - 0.5) * 2 * 8;
+          p.mesh.position.y = p.offset.y * Math.sin(p.t * Math.PI);
+          p.mesh.position.z = p.offset.z * Math.sin(p.t * Math.PI);
+
+          if (p.t >= 1.0) {
+            if (p.type.startsWith("leak")) {
+              databaseNode.material.color.setHex(0xef4444);
+              triggerExplosion(databaseNode.position, 0xef4444);
+            } else {
+              triggerExplosion(databaseNode.position, 0x2dd4bf);
+            }
+            scene.remove(p.mesh);
+            particles.splice(i, 1);
+          }
+        }
+      }
+
+      // Update Explosions
+      for (let i = explosionParticles.length - 1; i >= 0; i--) {
+        const ep = explosionParticles[i];
+        const posAttr = ep.points.geometry.attributes.position;
+        ep.opacity -= 0.02;
+        ep.points.material.opacity = ep.opacity;
+
+        for (let j = 0; j < posAttr.count; j++) {
+          posAttr.setX(j, posAttr.getX(j) + ep.velocities[j].x);
+          posAttr.setY(j, posAttr.getY(j) + ep.velocities[j].y);
+          posAttr.setZ(j, posAttr.getZ(j) + ep.velocities[j].z);
+        }
+        posAttr.needsUpdate = true;
+
+        if (ep.opacity <= 0) {
+          scene.remove(ep.points);
+          explosionParticles.splice(i, 1);
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function actionUrl(path) {
+      return 'http://127.0.0.1:8091' + path;
+    }
+
+    async function runChaosFuzzer() {
+      const btn = document.getElementById("run-chaos-btn");
+      if (!btn) return;
+      btn.disabled = true;
+      btn.textContent = "Fuzzing...";
+      
+      const statusPill = document.getElementById("gate-pill");
+      const latencyVal = document.getElementById("gate-latency");
+      if (statusPill) { statusPill.textContent = "FUZZING"; statusPill.className = "status-pill escalate"; }
+      if (latencyVal) latencyVal.textContent = "Running...";
+
+      try {
+        const res = await fetch(actionUrl('/api/chaos/fuzz'), {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' }
+        });
+        if (!res.ok) throw new Error("Fuzzer backend error");
+        const data = await res.json();
+        
+        triggerChaosAnimation(data);
+        
+      } catch (e) {
+        console.error(e);
+        btn.textContent = "⚡ Run Chaos Fuzzer";
+        btn.disabled = false;
+        if (statusPill) { statusPill.textContent = "OFFLINE"; statusPill.className = "status-pill deny"; }
+        if (latencyVal) latencyVal.textContent = "-- ms";
+        alert("Chaos Fuzzer failed: " + e.message);
+      }
+    }
+
+    function triggerChaosAnimation(data) {
+      const checkpoints = data.checkpoints || [];
+      let i = 0;
+
+      function runNext() {
+        if (i >= checkpoints.length) {
+          const btn = document.getElementById("run-chaos-btn");
+          if (btn) {
+            btn.textContent = "⚡ Fuzzer Passed";
+            btn.style.borderColor = "var(--ok)";
+            btn.style.color = "var(--ok)";
+            btn.style.background = "rgba(34, 197, 94, 0.1)";
+            btn.disabled = false;
+          }
+          updateGateTelemetry("ALLOW", Math.round(12 + Math.random() * 8));
+          return;
+        }
+
+        const cp = checkpoints[i];
+        const card = document.getElementById(`card-${cp.id}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          selectCard(cp.id);
+          card.style.borderColor = "var(--danger)";
+          card.style.background = "rgba(239, 68, 68, 0.05)";
+        }
+
+        updateGateTelemetry("FUZZING", Math.round(2 + Math.random() * 5));
+
+        if (renderer) {
+          spawnParticle(0xef4444, "deny_forcefield", 0.025);
+          setTimeout(() => {
+            spawnParticle(0xef4444, "deny_forcefield", 0.025);
+          }, 50);
+
+          if (gateBarrierMesh) {
+            gateBarrierMesh.material.color.setHex(0xef4444);
+            gateBarrierMesh.material.opacity = 0.5;
+            setTimeout(() => {
+              if (gateBarrierMesh) {
+                gateBarrierMesh.material.color.setHex(0xa855f7);
+                gateBarrierMesh.material.opacity = 0.15;
+              }
+            }, 150);
+          }
+        }
+
+        setTimeout(() => {
+          if (card) {
+            card.style.borderColor = "var(--ok)";
+            card.style.background = "rgba(34, 197, 94, 0.05)";
+            const idSpan = card.querySelector(".dgv-id");
+            if (idSpan && !idSpan.textContent.includes("✅")) {
+              idSpan.textContent += " ✅ PASSED";
+            }
+          }
+          i++;
+          runNext();
+        }, 300);
+      }
+
+      runNext();
+    }
+  </script>
+</body>
+</html>
