@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DGV-TC Registry - Deterministic AI Governance Standards</title>
+  
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #070b18;
+      --panel: rgba(15, 23, 48, 0.65);
+      --border: rgba(43, 54, 90, 0.5);
+      --text: #e6e8ef;
+      --muted: #aab2d5;
+      --primary: #60a5fa;
+      --accent: #2dd4bf;
+      --purple: #a855f7;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --ok: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header styling */
+    header {
+      background: rgba(11, 16, 32, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo-img {
+      height: 28px;
+    }
+
+    .brand-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .version-selector-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .version-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    select.version-dropdown {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    select.version-dropdown:hover, select.version-dropdown:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px rgba(96, 165, 250, 0.2);
+    }
+
+    /* Layout structure */
+    .layout-container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: calc(100vh - 61px);
+    }
+
+    /* Sidebar styles */
+    .sidebar {
+      background: rgba(11, 16, 32, 0.45);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .search-box-container {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    input.search-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      transition: all 0.2s ease;
+    }
+
+    input.search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px rgba(96, 165, 250, 0.2);
+    }
+
+    .cards-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(96, 165, 250, 0.3);
+    }
+
+    .card-item.active {
+      background: rgba(96, 165, 250, 0.06);
+      border-color: var(--primary);
+      box-shadow: 0 0 12px rgba(96, 165, 250, 0.1);
+    }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .layer-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    /* SVRNOS Layer colors */
+    .layer-badge.l1 { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .layer-badge.l2 { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+    .layer-badge.l3 { background: rgba(251, 113, 133, 0.15); color: #fb7185; border: 1px solid rgba(251, 113, 133, 0.3); }
+    .layer-badge.l4 { background: rgba(167, 139, 250, 0.15); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.3); }
+    .layer-badge.l5 { background: rgba(244, 114, 182, 0.15); color: #f472b6; border: 1px solid rgba(244, 114, 182, 0.3); }
+    .layer-badge.l6 { background: rgba(251, 146, 60, 0.15); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
+    .layer-badge.l7 { background: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); }
+
+    .card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Main Inspector Panel */
+    .main-panel {
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 32px;
+    }
+
+    .inspector-header {
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inspector-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .inspector-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .inspector-desc {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .ger-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      padding-bottom: 1px;
+    }
+
+    .tab-link {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 10px 16px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .tab-link:hover {
+      color: var(--text);
+    }
+
+    .tab-link.active {
+      color: var(--primary);
+    }
+
+    .tab-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+    }
+
+    /* Code & JSON content viewers */
+    .viewer-panel {
+      background: #040814;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      position: relative;
+      flex: 1;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .viewer-header {
+      background: rgba(11, 16, 32, 0.5);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .viewer-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(96, 165, 250, 0.3);
+    }
+
+    pre.code-block {
+      margin: 0;
+      padding: 20px;
+      overflow: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #94a3b8;
+      flex: 1;
+    }
+
+    /* Detailed explanation text block */
+    .explanation-content {
+      padding: 24px;
+      line-height: 1.6;
+      font-size: 14px;
+      color: #d1d5db;
+    }
+
+    .explanation-content h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .explanation-content p {
+      margin-bottom: 20px;
+    }
+
+    .explanation-content ul {
+      margin-left: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Custom scrollbars */
+    .sidebar::-webkit-scrollbar,
+    .cards-list::-webkit-scrollbar,
+    .main-panel::-webkit-scrollbar,
+    pre.code-block::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .sidebar::-webkit-scrollbar-track,
+    .cards-list::-webkit-scrollbar-track,
+    .main-panel::-webkit-scrollbar-track,
+    pre.code-block::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .sidebar::-webkit-scrollbar-thumb,
+    .cards-list::-webkit-scrollbar-thumb,
+    .main-panel::-webkit-scrollbar-thumb,
+    pre.code-block::-webkit-scrollbar-thumb {
+      background: rgba(96, 165, 250, 0.3);
+      border-radius: 4px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb:hover,
+    .cards-list::-webkit-scrollbar-thumb:hover,
+    .main-panel::-webkit-scrollbar-thumb:hover,
+    pre.code-block::-webkit-scrollbar-thumb:hover {
+      background: rgba(96, 165, 250, 0.6);
+    }
+
+    /* Syntax Highlighting */
+    .hl-keyword { color: #f472b6; font-weight: 600; }
+    .hl-string { color: #34d399; }
+    .hl-number { color: #fb923c; }
+    .hl-comment { color: #64748b; font-style: italic; }
+    .hl-type { color: #60a5fa; }
+    .hl-builtin { color: #2dd4bf; }
+    .hl-bracket { color: #a78bfa; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .layout-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 250px 1fr;
+        height: auto;
+      }
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .main-panel {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="../index.html" class="brand-logo">
+      <img src="../only-dvg.svg" alt="OnlyOS - Compliance" class="logo-img" />
+      <div class="brand-divider"></div>
+      <div class="brand-subtitle">Deterministic & Governance Verified (DGV) Registry</div>
+    </a>
+    
+    <div class="version-selector-container">
+      <span class="version-label">Registry Version:</span>
+      <select class="version-dropdown" id="version-dropdown" onchange="switchVersion()">
+        <option value="v0.4.0">v0.4.0 (Latest)</option>
+        <option value="v0.3.0">v0.3.0</option>
+        <option value="v0.2.0">v0.2.0</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="layout-container">
+    <div class="sidebar">
+      <div class="search-box-container">
+        <input type="text" class="search-input" id="search-input" placeholder="Search test cards..." oninput="filterCards()" />
+      </div>
+      <div class="cards-list" id="cards-list">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <div class="main-panel">
+      <div class="inspector-header">
+        <div class="inspector-meta">
+          <span class="layer-badge" id="insp-layer-badge">--</span>
+          <span class="ger-pill" id="insp-ger-mapping">--</span>
+          <span class="layer-badge" style="background:rgba(255,255,255,0.05); color:var(--muted); border:1px solid var(--border);" id="insp-version">Version: --</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; width:100%">
+          <h1 class="inspector-title" id="insp-title">Select a Test Card</h1>
+          <span class="card-id" id="insp-card-id" style="font-size:16px; font-weight:700; color:var(--primary); font-family:'JetBrains Mono', monospace; border:1px solid var(--border); padding:4px 10px; border-radius:6px; background:rgba(96,165,250,0.05); display:none;">--</span>
+        </div>
+        <p class="inspector-desc" id="insp-desc">Click on a test card in the sidebar to review detailed specifications, Only-Lang script definitions, and SDK integration code.</p>
+      </div>
+
+      <div class="tabs-nav">
+        <button class="tab-link active" id="tab-overview" onclick="switchTab('overview')">Overview</button>
+        <button class="tab-link" id="tab-json" onclick="switchTab('json')">JSON Spec</button>
+        <button class="tab-link" id="tab-dsl" onclick="switchTab('dsl')">Only-Lang DSL</button>
+        <button class="tab-link" id="tab-rust" onclick="switchTab('rust')">Rust Code</button>
+        <button class="tab-link" id="tab-python" onclick="switchTab('python')">Python Code</button>
+      </div>
+
+      <div class="viewer-panel">
+        <div class="viewer-header">
+          <span class="viewer-title" id="viewer-title">Overview</span>
+          <button class="copy-btn" id="copy-btn" onclick="copyContent()">
+            <span id="copy-icon">📋</span> <span id="copy-text">Copy</span>
+          </button>
+        </div>
+        
+        <div id="overview-container" class="explanation-content">
+          <!-- Overview text rendered here -->
+        </div>
+
+        <pre class="code-block" id="code-container" style="display: none;"><code id="code-content"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CARD_FILES = {
+      "v0.4.0": [
+        "dgv_tc_001_deterministic_execution.json",
+        "dgv_tc_002_boundary_enforcement.json",
+        "dgv_tc_003_policy_compliant_execution.json",
+        "dgv_tc_004_instruction_hierarchy.json",
+        "dgv_tc_005_refusal_correctness.json",
+        "dgv_tc_006_audit_log_completeness.json",
+        "dgv_tc_007_provenance_traceability.json",
+        "dgv_tc_008_stability_repeated_runs.json",
+        "dgv_tc_009_token_replay_resistance.json",
+        "dgv_tc_010_fail_closed_latency.json",
+        "dgv_tc_011_explanation_traceability.json",
+        "dgv_tc_012_adversarial_prompt_resistance.json",
+        "dgv_tc_013_statistical_fairness.json",
+        "dgv_tc_014_provenance_watermarking.json",
+        "dgv_tc_015_continuous_governance_heartbeat.json",
+        "dgv_tc_016_codon_delegation.json",
+        "dgv_tc_017_rlwe_enclave_binding.json",
+        "dgv_tc_018_spectral_drift_containment.json",
+        "dgv_tc_019_non_expansive_repair.json",
+        "dgv_tc_020_transitive_trust_revocation.json",
+        "dgv_tc_021_multisig_consensus_escape.json",
+        "dgv_tc_022_double_spend_prevention.json",
+        "dgv_tc_023_coherence_auto_escalation.json"
+      ],
+      "v0.3.0": [
+        "dgv_tc_001_deterministic_execution.json",
+        "dgv_tc_002_boundary_enforcement.json",
+        "dgv_tc_003_policy_compliant_execution.json",
+        "dgv_tc_004_instruction_hierarchy.json",
+        "dgv_tc_005_refusal_correctness.json",
+        "dgv_tc_006_audit_log_completeness.json",
+        "dgv_tc_007_provenance_traceability.json",
+        "dgv_tc_008_stability_repeated_runs.json",
+        "dgv_tc_009_token_replay_resistance.json",
+        "dgv_tc_010_fail_closed_latency.json",
+        "dgv_tc_011_explanation_traceability.json",
+        "dgv_tc_012_adversarial_prompt_resistance.json",
+        "dgv_tc_013_statistical_fairness.json",
+        "dgv_tc_014_provenance_watermarking.json",
+        "dgv_tc_015_continuous_governance_heartbeat.json"
+      ],
+      "v0.2.0": [
+        "dgv_tc_001_deterministic_execution.json",
+        "dgv_tc_002_boundary_enforcement.json",
+        "dgv_tc_003_policy_compliant_execution.json",
+        "dgv_tc_004_instruction_hierarchy.json",
+        "dgv_tc_005_refusal_correctness.json",
+        "dgv_tc_006_audit_log_completeness.json",
+        "dgv_tc_007_provenance_traceability.json",
+        "dgv_tc_008_stability_repeated_runs.json",
+        "dgv_tc_009_token_replay_resistance.json",
+        "dgv_tc_010_fail_closed_latency.json"
+      ]
+    };
+
+    // Keep cached maps for each version to prevent repeatedly fetching
+    let activeVersion = "v0.4.0";
+    let activeCardId = null;
+    let cardsCache = {}; // { version: { cardId: cardData } }
+    let activeTab = "overview";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      switchVersion();
+    });
+
+    async function switchVersion() {
+      const dropdown = document.getElementById("version-dropdown");
+      activeVersion = dropdown.value;
+      
+      const listContainer = document.getElementById("cards-list");
+      listContainer.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted);">Loading database...</div>`;
+      
+      if (!cardsCache[activeVersion]) {
+        cardsCache[activeVersion] = {};
+        const fetchPromises = CARD_FILES[activeVersion].map(async (filename) => {
+          try {
+            const res = await fetch(`../dgv/versions/${activeVersion}/${filename}`);
+            if (!res.ok) throw new Error("Fetch error");
+            const data = await res.json();
+            cardsCache[activeVersion][data.id] = data;
+          } catch (e) {
+            console.error(`Failed to fetch card JSON: ${filename}`, e);
+          }
+        });
+        await Promise.all(fetchPromises);
+      }
+
+      renderCardsList();
+      
+      // Auto-select first card in version
+      const firstCardId = Object.keys(cardsCache[activeVersion]).sort()[0];
+      if (firstCardId) {
+        selectCard(firstCardId);
+      }
+    }
+
+    function renderCardsList() {
+      const container = document.getElementById("cards-list");
+      const filterText = document.getElementById("search-input").value.toLowerCase();
+      
+      const cards = Object.values(cardsCache[activeVersion]).sort((a, b) => a.id.localeCompare(b.id));
+      
+      const filtered = cards.filter(c => 
+        c.id.toLowerCase().includes(filterText) || 
+        c.claim_name.toLowerCase().includes(filterText) ||
+        c.svrnos_layer.toLowerCase().includes(filterText)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted);">No cards match search.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(c => {
+        const layerClass = c.svrnos_layer.split(':')[0].trim().toLowerCase();
+        return `
+          <div class="card-item ${c.id === activeCardId ? 'active' : ''}" id="sidebar-${c.id}" onclick="selectCard('${c.id}')">
+            <div class="card-meta">
+              <span class="card-id">${c.id}</span>
+              <span class="layer-badge ${layerClass}">${c.svrnos_layer.split(':')[0]}</span>
+            </div>
+            <div class="card-name">${c.claim_name}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterCards() {
+      renderCardsList();
+    }
+
+    function selectCard(id) {
+      if (activeCardId) {
+        const prevActive = document.getElementById(`sidebar-${activeCardId}`);
+        if (prevActive) prevActive.classList.remove('active');
+      }
+      
+      activeCardId = id;
+      const currentActive = document.getElementById(`sidebar-${id}`);
+      if (currentActive) currentActive.classList.add('active');
+
+      const card = cardsCache[activeVersion][id];
+      if (!card) return;
+
+      // Update Header details
+      document.getElementById("insp-title").textContent = card.claim_name;
+      document.getElementById("insp-desc").textContent = card.claim_definition;
+      
+      const cardIdBadge = document.getElementById("insp-card-id");
+      cardIdBadge.textContent = card.id;
+      cardIdBadge.style.display = "inline-block";
+      
+      const layerBadge = document.getElementById("insp-layer-badge");
+      layerBadge.textContent = card.svrnos_layer;
+      layerBadge.className = "layer-badge " + card.svrnos_layer.split(':')[0].trim().toLowerCase();
+      
+      document.getElementById("insp-ger-mapping").textContent = card.ger_mapping;
+      document.getElementById("insp-version").textContent = `Version: ${card.version}`;
+
+      renderTabContent();
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll(".tab-link").forEach(btn => btn.classList.remove("active"));
+      document.getElementById(`tab-${tabName}`).classList.add("active");
+      activeTab = tabName;
+      renderTabContent();
+    }
+
+    function renderTabContent() {
+      const card = cardsCache[activeVersion][activeCardId];
+      if (!card) return;
+
+      const overviewCont = document.getElementById("overview-container");
+      const codeCont = document.getElementById("code-container");
+      const codeText = document.getElementById("code-content");
+      const copyBtn = document.getElementById("copy-btn");
+      const viewerTitle = document.getElementById("viewer-title");
+
+      copyBtn.style.display = "flex";
+      resetCopyButton();
+
+      if (activeTab === "overview") {
+        overviewCont.style.display = "block";
+        codeCont.style.display = "none";
+        copyBtn.style.display = "none";
+        viewerTitle.textContent = "Overview & Risk Implications";
+        
+        let penaltyDesc = getPenaltyDescription(card.id);
+        let provenance = getCardProvenance(card.id);
+        let provBadgeClass = getProvenanceBadgeClass(card.id);
+
+        overviewCont.innerHTML = `
+          <h3>Operational Purpose & Scope</h3>
+          <p>${card.test_cases[0].description}</p>
+          
+          <h3>Verification Context</h3>
+          <ul>
+            <li><strong>Target Scope:</strong> <code>${card.scope}</code></li>
+            <li><strong>Audit Strategy:</strong> <code>${card.test_type}</code></li>
+            <li><strong>Verification Metrics:</strong> ${card.metrics.map(m => `<code>${m}</code>`).join(', ')}</li>
+            <li><strong>Framework Origin & Credit:</strong> <span class="layer-badge ${provBadgeClass}" style="font-size:10px; font-weight:700; margin-left:4px; text-transform:none;">${provenance}</span></li>
+          </ul>
+
+          <h3>Governance Risk & Penalty</h3>
+          <p style="color: #fca5a5; background: rgba(239, 68, 68, 0.05); border-left: 3px solid var(--danger); padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+            ${penaltyDesc}
+          </p>
+
+          <h3>Governance Security Mission</h3>
+          <p style="font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5;">
+            Our mission is to continuously absorb and integrate the most advanced AI safety benchmarks globally, establishing OnlyOS at the forefront of verification-driven compliance with a commitment to maintaining a <strong>100% pass rate</strong> across the entire registry.
+          </p>
+
+          <h3>Community Test Contributions</h3>
+          <p style="font-size: 13px; color: var(--muted); line-height: 1.5;">
+            We actively invite developers, cryptographers, and compliance experts to propose new security claim cases or testing specifications. Contributions that qualify under the DGV governance constraints will be merged, indexed, and fully credited to their authors. To submit, propose a pull request to the versioned registry database.
+          </p>
+        `;
+      } 
+      else if (activeTab === "json") {
+        overviewCont.style.display = "none";
+        codeCont.style.display = "block";
+        viewerTitle.textContent = `${card.id} Schema definition (JSON)`;
+        
+        const rawJson = JSON.stringify(card, null, 2);
+        codeText.innerHTML = highlightSyntax(rawJson, "json");
+      } 
+      else if (activeTab === "dsl") {
+        overviewCont.style.display = "none";
+        codeCont.style.display = "block";
+        viewerTitle.textContent = "Only-Lang DSL Script";
+        
+        const rawDsl = card.test_cases[0].input.script;
+        codeText.innerHTML = highlightSyntax(rawDsl, "dsl");
+      } 
+      else if (activeTab === "rust") {
+        overviewCont.style.display = "none";
+        codeCont.style.display = "block";
+        viewerTitle.textContent = "Rust SDK Verification Snippet";
+        
+        const rawRust = generateRustScript(card);
+        codeText.innerHTML = highlightSyntax(rawRust, "rust");
+      } 
+      else if (activeTab === "python") {
+        overviewCont.style.display = "none";
+        codeCont.style.display = "block";
+        viewerTitle.textContent = "Python SDK Verification Snippet";
+        
+        const rawPython = generatePythonScript(card);
+        codeText.innerHTML = highlightSyntax(rawPython, "python");
+      }
+    }
+
+    function getPenaltyDescription(id) {
+      const penalties = {
+        "DGV-TC-001": "Mathematical drift breaks auditability. Violates Article 12 logs requirements. Fines up to €7.5M or 1.5% of global turnover under EU AI Act.",
+        "DGV-TC-002": "Safety boundaries breached. Triggers prohibited practice clauses under Article 5. Fines up to €35M or 7% of global turnover.",
+        "DGV-TC-003": "Systemic failure to monitor high-risk AI application states under Article 9. Fines up to €15M or 3% of global turnover.",
+        "DGV-TC-004": "Security bypass of parent policy rules. Exposes entity to operational bans and direct civil liabilities due to unauthorized agent actions.",
+        "DGV-TC-005": "Dangerous requests executed instead of refused. Severe reputational damage, direct civil liability, and breach of safety duties.",
+        "DGV-TC-006": "Immutable log hashes missing. Inability to verify compliance states to regulators under Article 12. Fines up to €15M.",
+        "DGV-TC-007": "Unverifiable component keys. High vulnerability to supply-chain attacks, identity impersonation, and breach of accountability standards.",
+        "DGV-TC-008": "Infinite loops or recursive state collapse causes system shutdowns, violating resilience requirements and exposing entity to contract liabilities.",
+        "DGV-TC-009": "Double-execution/replay vulnerability allows unauthorized state mutations, financial transaction fraud, and duplicate contract liabilities.",
+        "DGV-TC-010": "Slow verification gates fail open instead of closed. Exploits bypass gating, violating real-time monitoring mandates under Article 15.",
+        "DGV-TC-011": "Lack of reasoning and decision explanation logs. Violates Article 13 transparency requirements. Fines up to €15M or 3% of global turnover.",
+        "DGV-TC-012": "Prompt injection breaches safety constraints. Leads to unauthorized data leakage, system hijack, and severe data privacy violations.",
+        "DGV-TC-013": "Demographic bias or disparity in outputs. Violates anti-discrimination laws and Article 10 data quality rules. Fines up to €30M.",
+        "DGV-TC-014": "Generative outputs missing watermark signatures. Direct violation of Article 52 metadata tagging rules. Exposes firm to product recalls.",
+        "DGV-TC-015": "Operating agent swarms while telemetry heartbeat is offline. Violates continuous risk assessment mandates, causing immediate operational shutdown.",
+        "DGV-TC-016": "Forged or unlinked delegation lineage permits unauthorized agent execution, violating human oversight and continuous accountability constraints.",
+        "DGV-TC-017": "Untrusted enclave signatures indicate compromised cryptographic keys, breaching hardware security guarantees and auditing confidence.",
+        "DGV-TC-018": "Semantic policy drift exceeds containment limits, allowing model hallucinations or rule evasion. Violates proactive risk mitigation mandates.",
+        "DGV-TC-019": "State healing solver fails to converge, leaving the system in a drifted or unstable configuration, causing operational failures.",
+        "DGV-TC-020": "Revoked credentials remain active, allowing unauthorized transactions. Triggers strict identity auditing violations.",
+        "DGV-TC-021": "Consensus escape bypasses multi-sig requirements, violating Article 14 human veto and control principles.",
+        "DGV-TC-022": "Double-spend capability on signed tokens leads to duplicate financial operations or state modifications, indicating severe system exploit vulnerabilities.",
+        "DGV-TC-023": "Borderline risk metrics resolved without human veto or auto-escalation gates, violating Article 14 human control protocols."
+      };
+      return penalties[id] || "Failure to comply with governance policies. Exposes organization to regulatory audit failures and civil liabilities.";
+    }
+
+    function getCardProvenance(id) {
+      const num = parseInt(id.split('-').pop());
+      if (num >= 1 && num <= 10) {
+        return "DGV / OnlyOS Foundational Core";
+      } else if (num >= 11 && num <= 15) {
+        return "SVRNOS Layer Governance";
+      } else if (num >= 16 && num <= 23) {
+        return "LifeStack / WEDGE Integration";
+      }
+      return "DGV Standard Reference";
+    }
+
+    function getProvenanceBadgeClass(id) {
+      const num = parseInt(id.split('-').pop());
+      if (num >= 1 && num <= 10) {
+        return "l1";
+      } else if (num >= 11 && num <= 15) {
+        return "l4";
+      } else if (num >= 16 && num <= 23) {
+        return "l7";
+      }
+      return "l2";
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlightSyntax(code, lang) {
+      let escaped = escapeHtml(code);
+      let rules = [];
+      if (lang === "json") {
+        rules = [
+          { token: "comment", regex: /\/\/.*|\/\*[\s\S]*?\*\// },
+          { token: "type", regex: /"(?:[^"\\]|\\.)*"(?=\s*:)/ },
+          { token: "string", regex: /"(?:[^"\\]|\\.)*"/ },
+          { token: "number", regex: /-?\b\d+(?:\.\d*)?(?:[eE][+-]?\d+)?\b/ },
+          { token: "keyword", regex: /\b(?:true|false|null)\b/ },
+          { token: "bracket", regex: /[\{\}\[\]\:]/ }
+        ];
+      } else if (lang === "dsl") {
+        rules = [
+          { token: "comment", regex: /\/\/.*|#.*|--.*/ },
+          { token: "string", regex: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/ },
+          { token: "builtin", regex: /\b(?:harmony|evolve|data|residual|corrupt|assert|security_policy|decrypt|verify_nonce|use_once|heartbeat|loop)\b/ },
+          { token: "number", regex: /-?\b\d+(?:\.\d*)?(?:[eE][+-]?\d+)?\b/ },
+          { token: "bracket", regex: /[\(\)\{\}\[\]]/ }
+        ];
+      } else if (lang === "rust") {
+        rules = [
+          { token: "comment", regex: /\/\/.*|\/\*[\s\S]*?\*\// },
+          { token: "string", regex: /r#"(?:[\s\S]*?)"#|"(?:[^"\\]|\\.)*"/ },
+          { token: "builtin", regex: /#\[(?:[^\]])*\]/ },
+          { token: "keyword", regex: /\b(?:let|mut|fn|struct|impl|use|pub|async|await|match|if|else|return|dyn|for|in|while|loop|mod|crate|as)\b/ },
+          { token: "builtin", regex: /\b(?:Ok|Err|Some|None|println!|assert_eq!|assert!|format!|vec!|panic!)\b/ },
+          { token: "type", regex: /\b(?:OnlyOSClient|Result|Box|String|u32|u64|i32|i64|f32|f64|usize|str|bool|Option|Error|std)\b/ },
+          { token: "number", regex: /-?\b\d+(?:\.\d*)?(?:[eE][+-]?\d+)?(?:u32|u64|i32|i64|f32|f64|usize)?\b/ },
+          { token: "bracket", regex: /[\(\)\{\}\[\]]/ }
+        ];
+      } else if (lang === "python") {
+        rules = [
+          { token: "comment", regex: /#.*/ },
+          { token: "string", regex: /"""(?:[\s\S]*?)"""|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/ },
+          { token: "keyword", regex: /\b(?:import|from|try|except|print|assert|as|class|def|pass|if|else|elif|for|in|while|return|and|or|not|with|lambda|None|True|False)\b/ },
+          { token: "type", regex: /\b(?:OnlyOSClient|SafetyBlockException|json|dict|list|str|int|float|bool|Exception)\b/ },
+          { token: "number", regex: /-?\b\d+(?:\.\d*)?(?:[eE][+-]?\d+)?\b/ },
+          { token: "bracket", regex: /[\(\)\{\}\[\]]/ }
+        ];
+      }
+
+      if (rules.length === 0) return escaped;
+
+      let combinedRegexSrc = rules.map(r => "(" + r.regex.source + ")").join("|");
+      let combinedRegex = new RegExp(combinedRegexSrc, "g");
+
+      return escaped.replace(combinedRegex, function(match, ...args) {
+        let matchedIndex = args.findIndex((val, idx) => val !== undefined && idx < rules.length);
+        if (matchedIndex === -1) return match;
+        let tokenType = rules[matchedIndex].token;
+        return '<span class="hl-' + tokenType + '">' + match + '</span>';
+      });
+    }
+
+    function generateRustScript(card) {
+      const dslScript = card.test_cases[0].input.script.replace(/\n/g, '\\n');
+      const payloadVal = JSON.stringify(card.test_cases[0].input.payload);
+      const actionName = card.claim_name.toLowerCase().replace(/ & /g, '_').replace(/ /g, '_');
+      const reqId = `REQ-${card.id.split('-').pop()}-001`;
+
+      return `// Rust Verification Script for ${card.id} (${card.claim_name})
+// Powered by OnlyOS SDK / dgv.only.institute
+
+use only_lang::sdk::OnlyOSClient;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Initialize high-performance async client bound to TEE gateway
+    let client = OnlyOSClient::new("http://localhost:8091");
+
+    // 2. Submit signed execution proposal with mathematical invariants
+    let proposal = client.propose_action(
+        "${reqId}",
+        "${actionName}",
+        r#"{"script": "${dslScript}", "payload": ${payloadVal}}"#
+    ).await?;
+
+    println!("Gating plane status: {:?}", proposal.gate_state);
+    
+    // 3. Assert policy compliance outcome (expected: ${card.test_cases[0].expected.gate_status || "ALLOW"})
+    assert_eq!(proposal.gate_state, "${card.test_cases[0].expected.gate_status || "ALLOW"}");
+    
+    // 4. Retrieve cryptographically signed receipt for audit log
+    if let Some(token) = proposal.auth_token {
+        println!("Authorized token: {}", token.token_id);
+    }
+    
+    Ok(())
+}`;
+    }
+
+    function generatePythonScript(card) {
+      const dslScript = card.test_cases[0].input.script;
+      const payloadVal = card.test_cases[0].input.payload;
+      const actionName = card.claim_name.toLowerCase().replace(/ & /g, '_').replace(/ /g, '_');
+      const reqId = `REQ-${card.id.split('-').pop()}-001`;
+
+      return `# Python Verification Script for ${card.id} (${card.claim_name})
+# Powered by OnlyOS SDK / dgv.only.institute
+
+import json
+from onlyos_sdk import OnlyOSClient, SafetyBlockException
+
+# 1. Initialize client bound to TEE gateway
+client = OnlyOSClient("http://localhost:8091")
+
+try:
+    # 2. Submit signed execution proposal with mathematical invariants
+    proposal = client.propose_action(
+        request_id="${reqId}",
+        action="${actionName}",
+        params={
+            "script": """${dslScript}""",
+            "payload": ${typeof payloadVal === 'object' ? JSON.stringify(payloadVal) : payloadVal}
+        }
+    )
+    
+    print(f"Gating plane status: {proposal.gate_state}")
+    
+    # 3. Assert policy compliance outcome
+    assert proposal.gate_state == "${card.test_cases[0].expected.gate_status || "ALLOW"}"
+    
+    # 4. Retrieve signed receipt for audit log
+    print(f"Authorized token: {proposal.auth_token.token_id}")
+
+except SafetyBlockException as e:
+    # Expected fail-closed behavior for refused transactions
+    print(f"Safety Gate blocked execution correctly: {e}")
+    assert "${card.test_cases[0].expected.gate_status || "ALLOW"}" == "CLOSED"
+`;
+    }
+
+    function copyContent() {
+      const codeText = document.getElementById("code-content").textContent;
+      navigator.clipboard.writeText(codeText).then(() => {
+        const copyBtnText = document.getElementById("copy-text");
+        const copyBtnIcon = document.getElementById("copy-icon");
+        
+        copyBtnIcon.textContent = "✅";
+        copyBtnText.textContent = "Copied!";
+        
+        setTimeout(resetCopyButton, 2000);
+      }).catch(err => {
+        console.error("Failed to copy text: ", err);
+      });
+    }
+
+    function resetCopyButton() {
+      document.getElementById("copy-icon").textContent = "📋";
+      document.getElementById("copy-text").textContent = "Copy";
+    }
+  </script>
+</body>
+</html>

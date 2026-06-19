@@ -655,7 +655,7 @@
       <!-- Branding Topbar -->
       <div class="topbar-branding">
         <a href="index.html" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
-          <img src="logo.png" alt="OnlyOS - Compliance" class="topbar-logo" />
+          <img src="only-dvg.svg" alt="OnlyOS - Compliance" class="topbar-logo" />
         </a>
         <div class="topbar-divider"></div>
         <div class="topbar-subtitle">3D Gating visualizer</div>
@@ -1537,7 +1537,7 @@
       const penaltyCard = document.getElementById("penalty-card");
       if (!success) {
         const item = DGV_DATA.find(t => t.id === testId);
-        document.getElementById("penalty-text").textContent = item?.penalty || "--";
+        document.getElementById("penalty-text").textContent = (item && item.penalty) || "--";
         penaltyCard.style.display = "block";
       } else {
         penaltyCard.style.display = "none";
@@ -1683,13 +1683,13 @@
         // Deterministic execution
         if (success) {
           spawnParticle(0x60a5fa, "allow", 0.015, new THREE.Vector3(0,0,0));
-          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-001" && activeSimulation?.success) spawnParticle(0x60a5fa, "allow", 0.015, new THREE.Vector3(0,0,0)); }, 500);
-          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-001" && activeSimulation?.success) spawnParticle(0x60a5fa, "allow", 0.015, new THREE.Vector3(0,0,0)); }, 1000);
+          setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-001" && activeSimulation.success) spawnParticle(0x60a5fa, "allow", 0.015, new THREE.Vector3(0,0,0)); }, 500);
+          setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-001" && activeSimulation.success) spawnParticle(0x60a5fa, "allow", 0.015, new THREE.Vector3(0,0,0)); }, 1000);
         } else {
           // Failure: Particles jitter and follow drifted paths
           spawnParticle(0xef4444, "deny_drift", 0.015, new THREE.Vector3(0, 0.4, 0.2));
-          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-001" && !activeSimulation?.success) spawnParticle(0xef4444, "deny_drift", 0.015, new THREE.Vector3(0, -0.4, -0.2)); }, 500);
-          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-001" && !activeSimulation?.success) spawnParticle(0xef4444, "deny_drift", 0.015, new THREE.Vector3(0, 0.2, -0.4)); }, 1000);
+          setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-001" && !activeSimulation.success) spawnParticle(0xef4444, "deny_drift", 0.015, new THREE.Vector3(0, -0.4, -0.2)); }, 500);
+          setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-001" && !activeSimulation.success) spawnParticle(0xef4444, "deny_drift", 0.015, new THREE.Vector3(0, 0.2, -0.4)); }, 1000);
         }
       } else if (testId === "DGV-TC-002") {
         // Boundary Enforcement
@@ -1738,22 +1738,22 @@
         // Stability Under Repetition (stream loop)
         if (success) {
           for (let j = 0; j < 12; j++) {
-            setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-008" && activeSimulation?.success) spawnParticle(0x22c55e, "allow_repeated", 0.018, new THREE.Vector3(0,0,0)); }, j * 150);
+            setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-008" && activeSimulation.success) spawnParticle(0x22c55e, "allow_repeated", 0.018, new THREE.Vector3(0,0,0)); }, j * 150);
           }
         } else {
           // Failure stream breaks apart
           for (let j = 0; j < 12; j++) {
-            setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-008" && !activeSimulation?.success) spawnParticle(0xef4444, "deny_repeated", 0.018, new THREE.Vector3(0,0,0)); }, j * 150);
+            setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-008" && !activeSimulation.success) spawnParticle(0xef4444, "deny_repeated", 0.018, new THREE.Vector3(0,0,0)); }, j * 150);
           }
         }
       } else if (testId === "DGV-TC-009") {
         // Token replay resistance
         if (success) {
           spawnParticle(0xf59e0b, "allow", 0.016);
-          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-009" && activeSimulation?.success) spawnParticle(0xef4444, "deny_replay", 0.016); }, 600); // Replayed token is denied
+          setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-009" && activeSimulation.success) spawnParticle(0xef4444, "deny_replay", 0.016); }, 600); // Replayed token is denied
         } else {
           spawnParticle(0xf59e0b, "allow", 0.016);
-          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-009" && !activeSimulation?.success) spawnParticle(0xf59e0b, "leak_replay", 0.016); }, 600); // Replay leaks
+          setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-009" && !activeSimulation.success) spawnParticle(0xf59e0b, "leak_replay", 0.016); }, 600); // Replay leaks
         }
       } else if (testId === "DGV-TC-010") {
         // Latency
@@ -1781,10 +1781,10 @@
         // Demographics fairness (alternating cohorts A and B)
         if (success) {
           spawnParticle(0x60a5fa, "allow", 0.015); // Cohort A (Blue)
-          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-013" && activeSimulation?.success) spawnParticle(0xa855f7, "allow", 0.015); }, 400); // Cohort B (Magenta)
+          setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-013" && activeSimulation.success) spawnParticle(0xa855f7, "allow", 0.015); }, 400); // Cohort B (Magenta)
         } else {
           spawnParticle(0x60a5fa, "allow", 0.015); // Cohort A passes
-          setTimeout(() => { if (activeSimulation?.testId === "DGV-TC-013" && !activeSimulation?.success) spawnParticle(0xa855f7, "deny_fairness", 0.015); }, 400); // Cohort B gets denied
+          setTimeout(() => { if (activeSimulation && activeSimulation.testId === "DGV-TC-013" && !activeSimulation.success) spawnParticle(0xa855f7, "deny_fairness", 0.015); }, 400); // Cohort B gets denied
         }
       } else if (testId === "DGV-TC-014") {
         // Provenance Watermarking (gets signed on exit)
@@ -2091,7 +2091,7 @@
       databaseNode.rotation.z += 0.002;
 
       // Pulse gate barrier opacity
-      if (gateBarrierMesh && !(activeSimulation?.testId === "DGV-TC-010" && !activeSimulation?.success && particles.some(p => p.type === "latency_timeout" && p.t > 0.4))) {
+      if (gateBarrierMesh && !(activeSimulation && activeSimulation.testId === "DGV-TC-010" && !activeSimulation.success && particles.some(p => p.type === "latency_timeout" && p.t > 0.4))) {
         const time = Date.now() * 0.002;
         gateBarrierMesh.material.opacity = 0.1 + Math.sin(time) * 0.05;
       }
