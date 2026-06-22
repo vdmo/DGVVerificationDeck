@@ -474,7 +474,8 @@
     <div class="version-selector-container">
       <span class="version-label">Registry Version:</span>
       <select class="version-dropdown" id="version-dropdown" onchange="switchVersion()">
-        <option value="v0.4.0">v0.4.0 (Latest)</option>
+        <option value="v0.5.0">v0.5.0 (Latest)</option>
+        <option value="v0.4.0">v0.4.0</option>
         <option value="v0.3.0">v0.3.0</option>
         <option value="v0.2.0">v0.2.0</option>
       </select>
@@ -532,6 +533,37 @@
 
   <script>
     const CARD_FILES = {
+      "v0.5.0": [
+        "dgv_tc_001_deterministic_execution.json",
+        "dgv_tc_002_boundary_enforcement.json",
+        "dgv_tc_003_policy_compliant_execution.json",
+        "dgv_tc_004_instruction_hierarchy.json",
+        "dgv_tc_005_refusal_correctness.json",
+        "dgv_tc_006_audit_log_completeness.json",
+        "dgv_tc_007_provenance_traceability.json",
+        "dgv_tc_008_stability_repeated_runs.json",
+        "dgv_tc_009_token_replay_resistance.json",
+        "dgv_tc_010_fail_closed_latency.json",
+        "dgv_tc_011_explanation_traceability.json",
+        "dgv_tc_012_adversarial_prompt_resistance.json",
+        "dgv_tc_013_statistical_fairness.json",
+        "dgv_tc_014_provenance_watermarking.json",
+        "dgv_tc_015_continuous_governance_heartbeat.json",
+        "dgv_tc_016_codon_delegation.json",
+        "dgv_tc_017_rlwe_enclave_binding.json",
+        "dgv_tc_018_spectral_drift_containment.json",
+        "dgv_tc_019_non_expansive_repair.json",
+        "dgv_tc_020_transitive_trust_revocation.json",
+        "dgv_tc_021_multisig_consensus_escape.json",
+        "dgv_tc_022_double_spend_prevention.json",
+        "dgv_tc_023_coherence_auto_escalation.json",
+        "dgv_tc_024_uiag_legal_hold.json",
+        "dgv_tc_025_uiag_high_risk_dpia.json",
+        "dgv_tc_026_uiag_classification_controls.json",
+        "dgv_tc_027_model_weight_integrity.json",
+        "dgv_tc_028_ai_id_registry_validation.json",
+        "dgv_tc_029_model_drift_threshold.json"
+      ],
       "v0.4.0": [
         "dgv_tc_001_deterministic_execution.json",
         "dgv_tc_002_boundary_enforcement.json",
@@ -589,7 +621,7 @@
     };
 
     // Keep cached maps for each version to prevent repeatedly fetching
-    let activeVersion = "v0.4.0";
+    let activeVersion = "v0.5.0";
     let activeCardId = null;
     let cardsCache = {}; // { version: { cardId: cardData } }
     let activeTab = "overview";
@@ -811,7 +843,13 @@
         "DGV-TC-020": "Revoked credentials remain active, allowing unauthorized transactions. Triggers strict identity auditing violations.",
         "DGV-TC-021": "Consensus escape bypasses multi-sig requirements, violating Article 14 human veto and control principles.",
         "DGV-TC-022": "Double-spend capability on signed tokens leads to duplicate financial operations or state modifications, indicating severe system exploit vulnerabilities.",
-        "DGV-TC-023": "Borderline risk metrics resolved without human veto or auto-escalation gates, violating Article 14 human control protocols."
+        "DGV-TC-023": "Borderline risk metrics resolved without human veto or auto-escalation gates, violating Article 14 human control protocols.",
+        "DGV-TC-024": "Active legal hold overridden. Destruction of legally preserved evidence. Criminal liability for spoliation, regulatory fines up to €20M, and civil contempt proceedings.",
+        "DGV-TC-025": "High-risk AI processing executed without completed DPIA. Direct violation of GDPR Article 35 and EU AI Act Article 9. Fines up to €20M or 4% of global annual turnover.",
+        "DGV-TC-026": "Restricted data asset processed without AES-256 encryption enforcement. Breach of data classification controls, exposing entity to mandatory breach notification and severe regulatory penalties.",
+        "DGV-TC-027": "Tampered model binary granted execution permissions. Silent weight modification bypasses audit chain, enabling undetected adversarial behaviour in production. Catastrophic supply-chain liability.",
+        "DGV-TC-028": "Unregistered or phantom AI agent granted execution authority. Violates non-human identity traceability requirements. Full chain-of-accountability failure; agent actions legally unattributable.",
+        "DGV-TC-029": "Structurally drifted model (LZJD > 0.05) enters production without re-registration. Silently breaks the chain of custody between audited and deployed versions. Governance certification void."
       };
       return penalties[id] || "Failure to comply with governance policies. Exposes organization to regulatory audit failures and civil liabilities.";
     }
@@ -824,6 +862,10 @@
         return "SVRNOS Layer Governance";
       } else if (num >= 16 && num <= 23) {
         return "LifeStack / WEDGE Integration";
+      } else if (num >= 24 && num <= 26) {
+        return "UIAG Regulatory Compliance";
+      } else if (num >= 27 && num <= 29) {
+        return "AI Identity Integrity (AI-ID / DGV)";
       }
       return "DGV Standard Reference";
     }
@@ -836,6 +878,10 @@
         return "l4";
       } else if (num >= 16 && num <= 23) {
         return "l7";
+      } else if (num >= 24 && num <= 26) {
+        return "l3";
+      } else if (num >= 27 && num <= 29) {
+        return "l2";
       }
       return "l2";
     }
